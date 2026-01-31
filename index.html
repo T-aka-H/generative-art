@@ -19,7 +19,6 @@
       display: block;
       touch-action: none;
     }
-    /* 縦向き時の回転メッセージ */
     #rotateMsg {
       display: none;
       position: fixed;
@@ -31,25 +30,15 @@
       justify-content: center;
       color: white;
       font-family: -apple-system, sans-serif;
-      font-size: 18px;
     }
     #rotateMsg .icon {
-      font-size: 48px;
-      margin-bottom: 16px;
-      animation: rotateHint 2s ease-in-out infinite;
-    }
-    #rotateMsg .main-text {
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
     #rotateMsg .hint {
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 13px;
-      line-height: 1.8;
+      font-size: 14px;
+      line-height: 2;
       text-align: center;
-    }
-    @keyframes rotateHint {
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(90deg); }
+      color: rgba(255, 255, 255, 0.7);
     }
     @media (orientation: portrait) and (max-width: 900px) {
       #rotateMsg { display: flex; }
@@ -61,8 +50,13 @@
 </head>
 <body>
   <div id="rotateMsg">
-    <div class="icon">📱</div>
-    <div class="main-text">横向きにしてください</div>
+    <div class="icon">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>
+        <polyline points="12 3 12 15"/>
+        <polyline points="8 7 12 3 16 7"/>
+      </svg>
+    </div>
     <div class="hint">
       共有ボタン → ホーム画面に追加 してから起動してください<br>
       Share → Add to Home Screen for fullscreen
