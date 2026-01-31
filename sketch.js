@@ -66,6 +66,24 @@ let lastAccZ = 0;
 let pinchAmplitude = 1.0;  // 波の振幅倍率（0.3〜2.0）
 let lastPinchDist = 0;     // 前フレームの2指間距離
 
+// --- 【新しい概念】Geolocation API → 緯度で海の雰囲気を変える ---
+// navigator.geolocation.getCurrentPosition() で端末の位置情報を取得。
+// 緯度（latitude）を使って、熱帯（赤道付近）⇔ 北極圏の海を表現する。
+// climateFactor: 0.0 = 北極/南極（冷たい）、1.0 = 赤道（熱帯）
+let climateFactor = 0.5;  // デフォルト: 温帯
+let hasLocation = false;   // 位置情報が取得できたか
+
+// --- 【新しい概念】コンパス（方位角）→ 波の流れる向き ---
+// DeviceOrientationEvent の alpha は方位角（0〜360°、北=0）。
+// 端末が向いている方角に応じて波の流れる方向が変わる。
+let compassHeading = 0;    // 0〜360°
+let hasCompass = false;     // コンパスデータが取得できたか
+
+// --- 空クリック → 時間帯の手動変更 ---
+// 空（画面上部30%）をクリックすると時刻を2時間ずつ進める。
+// manualHour が -1 のときは実際の時刻を使う。
+let manualHour = -1;       // -1 = 自動（実時刻）、0〜24 = 手動設定
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   colorMode(HSB, 360, 100, 100, 100);
@@ -88,9 +106,14 @@ function draw() {
   }
 
   // --- 時刻に応じた空のグラデーション背景 ---
-  // new Date() で現在時刻を取得し、時間帯ごとに空の色を変える
-  let now = new Date();
-  let h = now.getHours() + now.getMinutes() / 60; // 例: 14時30分 → 14.5
+  // manualHour が -1 なら実際の時刻、それ以外は手動設定の時刻を使う
+  let h;
+  if (manualHour >= 0) {
+    h = manualHour;
+  } else {
+    let now = new Date();
+    h = now.getHours() + now.getMinutes() / 60; // 例: 14時30分 → 14.5
+  }
 
   // 時間帯ごとの空の色を定義（[上空, 地平線]のペア）
   // 隣り合う時間帯の間を lerpColor で滑らかに補間する
@@ -167,7 +190,15 @@ function draw() {
   // マウスX位置で波の流れる速さを変える
   // 左端: -2（逆流）、中央: 0（静止）、右端: +2（順流）
   // gustDirection: スワイプの突風が流れの向きに加算される
-  let speed = (mx - 0.5) * 4 + gustDirection * gustStrength * 3;
+  // hasCompass: コンパスが有効なら方位角で波の流れを決める
+  let speed;
+  if (hasCompass) {
+    // コンパス: 東（90°）で右に流れ、西（270°）で左に流れる
+    speed = sin(radians(compassHeading)) * 3;
+  } else {
+    speed = (mx - 0.5) * 4;
+  }
+  speed += gustDirection * gustStrength * 3;
 
   // 振動（シェイク）による波の増幅
   // 端末を振ると一時的に波が大きくなる
@@ -200,11 +231,15 @@ function draw() {
     // daylight: 昼(10〜16時)で1.0、夜(21〜5時)で0.0、間は滑らかに変化
     let daylight = constrain(map(h, 5, 10, 0, 1), 0, 1) - constrain(map(h, 18, 21, 0, 1), 0, 1);
     daylight = max(daylight, 0);
-    // 昼は明るいターコイズ系、夜は暗い紺系
-    // ratio（0〜1）を使って、層数が変わっても色が範囲内に収まるようにする
-    let hue = lerp(220, 195, daylight) - ratio * 20;
-    let saturation = lerp(20, 35, daylight) + ratio * 30;
-    let brightness = lerp(15, 70, daylight) + ratio * lerp(25, 30, daylight);
+    // --- 緯度（climateFactor）による海の色味の変化 ---
+    // climateFactor: 0=北極（暗い灰青）、0.5=温帯（通常）、1=熱帯（ターコイズ）
+    // 熱帯: 色相が低め（180前後=ターコイズ）、彩度高、明るい
+    // 北極: 色相が高め（230前後=紺）、彩度低、暗い
+    let tropicalHue = lerp(200, 180, daylight) - ratio * 15;
+    let arcticHue = lerp(230, 220, daylight) - ratio * 10;
+    let hue = lerp(arcticHue, tropicalHue, climateFactor);
+    let saturation = lerp(20, 35, daylight) + ratio * 30 + climateFactor * 15;
+    let brightness = lerp(15, 70, daylight) + ratio * lerp(25, 30, daylight) + climateFactor * 10;
     let alpha = 70 + ratio * 25;
 
     fill(hue, saturation, brightness, alpha);
@@ -441,10 +476,25 @@ function mousePressed() {
   if (!appStarted) {
     appStarted = true;
     if (!soundStarted) initSound();
+    requestLocation();
     return;
   }
 
   if (!soundStarted) initSound();
+
+  // 空（上部30%）をクリックしたら時間帯を2時間進める
+  if (mouseY < height * 0.3) {
+    if (manualHour < 0) {
+      let now = new Date();
+      manualHour = (now.getHours() + 2) % 24;
+    } else {
+      manualHour = (manualHour + 2) % 24;
+    }
+    tiltStatusMsg = hourToLabel(manualHour);
+    statusShowTime = millis();
+    return;
+  }
+
   clicks.push({ x: mouseX, age: 0 });
 }
 
@@ -459,6 +509,7 @@ function touchStarted() {
     if (!soundStarted) initSound();
     requestOrientationPermission();
     requestMotionPermission();
+    requestLocation();
     return false;
   }
 
@@ -468,6 +519,19 @@ function touchStarted() {
   if (!hasTilt) {
     requestOrientationPermission();
     requestMotionPermission();
+  }
+
+  // 空（上部30%）をタップしたら時間帯を2時間進める
+  if (touches.length === 1 && touches[0].y < height * 0.3) {
+    if (manualHour < 0) {
+      let now = new Date();
+      manualHour = (now.getHours() + 2) % 24;
+    } else {
+      manualHour = (manualHour + 2) % 24;
+    }
+    tiltStatusMsg = hourToLabel(manualHour);
+    statusShowTime = millis();
+    return false;
   }
 
   for (let touch of touches) {
@@ -594,6 +658,12 @@ function handleOrientation(event) {
     tiltY = event.beta;
     hasTilt = true;
   }
+  // alpha: 方位角（0°=北、90°=東、180°=南、270°=西）
+  // コンパスの向きに応じて波の流れる方向を変える
+  if (event.alpha !== null) {
+    compassHeading = event.alpha;
+    hasCompass = true;
+  }
 }
 
 // === iOS 13以降のパーミッション対応 ===
@@ -696,6 +766,45 @@ function requestMotionPermission() {
     motionPermissionRequested = true;
     window.addEventListener('devicemotion', handleMotion);
   }
+}
+
+// === 時刻ラベルを返すヘルパー関数 ===
+// 空をタップして時間帯を変えたとき、どの時間帯かを表示する
+function hourToLabel(hour) {
+  if (hour >= 5 && hour < 7) return '🌅 Dawn';
+  if (hour >= 7 && hour < 10) return '🌤 Morning';
+  if (hour >= 10 && hour < 16) return '☀️ Daytime';
+  if (hour >= 16 && hour < 18) return '🌇 Afternoon';
+  if (hour >= 18 && hour < 21) return '🌆 Sunset';
+  return '🌙 Night';
+}
+
+// === 【新しい概念】Geolocation API → 位置情報の取得 ===
+// navigator.geolocation.getCurrentPosition() で緯度経度を1回取得する。
+// 成功したら climateFactor を計算する。失敗してもデフォルト値で動く。
+function requestLocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      let lat = pos.coords.latitude; // -90〜90
+      let absLat = abs(lat);
+      // 赤道（0°）→ 1.0、北極/南極（60°以上）→ 0.0
+      climateFactor = constrain(map(absLat, 0, 60, 1, 0), 0, 1);
+      hasLocation = true;
+
+      // 緯度に応じたメッセージ
+      let climateLabel;
+      if (climateFactor > 0.7) climateLabel = 'Tropical waters';
+      else if (climateFactor > 0.3) climateLabel = 'Temperate waters';
+      else climateLabel = 'Arctic waters';
+      tiltStatusMsg = climateLabel;
+      statusShowTime = millis();
+    },
+    function(err) {
+      console.log('位置情報の取得に失敗:', err.message);
+    },
+    { timeout: 10000 }
+  );
 }
 
 // === windowResized() ===
