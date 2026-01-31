@@ -52,17 +52,6 @@ function draw() {
     textSize(min(width, height) * 0.06);
     text('Tap to Start', width / 2, height / 2);
 
-    // モバイル端末（タッチ対応）の場合、全画面化の案内を表示
-    // ホーム画面から起動済み（standalone）なら不要
-    let isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    let isStandalone = window.navigator.standalone === true ||
-      window.matchMedia('(display-mode: standalone)').matches;
-    if (isMobile && !isStandalone) {
-      fill(0, 0, 100, 50);
-      textSize(min(width, height) * 0.03);
-      text('For fullscreen: Share → Add to Home Screen', width / 2, height / 2 + min(width, height) * 0.12);
-    }
-
     return;
   }
 

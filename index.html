@@ -34,9 +34,18 @@
       font-size: 18px;
     }
     #rotateMsg .icon {
-      font-size: 60px;
-      margin-bottom: 20px;
+      font-size: 48px;
+      margin-bottom: 16px;
       animation: rotateHint 2s ease-in-out infinite;
+    }
+    #rotateMsg .main-text {
+      margin-bottom: 32px;
+    }
+    #rotateMsg .hint {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 13px;
+      line-height: 1.8;
+      text-align: center;
     }
     @keyframes rotateHint {
       0%, 100% { transform: rotate(0deg); }
@@ -53,7 +62,11 @@
 <body>
   <div id="rotateMsg">
     <div class="icon">📱</div>
-    <div>横向きにしてください</div>
+    <div class="main-text">横向きにしてください</div>
+    <div class="hint">
+      共有ボタン → ホーム画面に追加 してから起動してください<br>
+      Share → Add to Home Screen for fullscreen
+    </div>
   </div>
   <script src="sketch.js"></script>
 </body>
