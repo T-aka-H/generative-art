@@ -25,6 +25,14 @@ let tiltY = 0;     // beta: 前後の傾き
 let hasTilt = false;           // 傾きデータが取得できたかどうか
 let permissionRequested = false; // iOS用パーミッションを要求済みか
 
+// --- タッチ位置フォールバック ---
+// 傾きセンサーが使えない場合、最後にタッチした位置で波を操作する
+let lastTouchX = 0.5;  // 0〜1（画面の横位置比率）
+let lastTouchY = 0.5;  // 0〜1（画面の縦位置比率）
+let isTouchDevice = false;  // タッチデバイスかどうか
+let tiltStatusMsg = '';     // 状態表示メッセージ
+let statusShowTime = 0;     // メッセージ表示開始時刻
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   colorMode(HSB, 360, 100, 100, 100);
@@ -86,16 +94,18 @@ function draw() {
   }
 
   // --- 操作入力を 0〜1 の比率に変換する ---
-  // デスクトップ: マウス位置を使う
-  // スマートフォン: デバイスの傾きを使う（傾きデータがあれば自動切り替え）
+  // 優先順位: 1.傾きセンサー → 2.タッチ位置 → 3.マウス位置
   let mx, my;
   if (hasTilt) {
     // gamma（左右の傾き）: -30°〜+30° を 0〜1 にマッピング
-    // 左に傾ける → 0（逆流）、右に傾ける → 1（順流）
     mx = constrain(map(tiltX, -30, 30, 0, 1), 0, 1);
     // beta（前後の傾き）: 0°〜60° を 0〜1 にマッピング
-    // スマホを立てる(0°) → 穏やかな波、寝かす(60°) → 荒い波
     my = constrain(map(tiltY, 0, 60, 0, 1), 0, 1);
+  } else if (isTouchDevice) {
+    // 傾きが使えないスマホ: 最後にタッチした位置で操作
+    // 画面の左側タッチ → 逆流、右側 → 順流、上 → 穏やか、下 → 荒い
+    mx = lastTouchX;
+    my = lastTouchY;
   } else {
     mx = mouseX / width;
     my = mouseY / height;
@@ -265,6 +275,17 @@ function draw() {
   clicks = clicks.filter(cl => cl.age < 4);
 
   t += 0.008;
+
+  // --- 状態メッセージの表示（数秒で自動的に消える） ---
+  if (tiltStatusMsg && millis() - statusShowTime < 4000) {
+    let msgAlpha = map(millis() - statusShowTime, 3000, 4000, 100, 0);
+    msgAlpha = constrain(msgAlpha, 0, 100);
+    fill(0, 0, 100, msgAlpha);
+    noStroke();
+    textSize(14);
+    textAlign(CENTER, TOP);
+    text(tiltStatusMsg, width / 2, 20);
+  }
 }
 
 // --- 音を初期化する関数（最初のクリックで1回だけ呼ばれる） ---
@@ -318,12 +339,18 @@ function touchStarted() {
     initSound();
   }
 
-  // 初回タッチ時に傾きセンサーの許可を要求する（iOS 13+で必要）
-  requestOrientationPermission();
+  isTouchDevice = true;
 
-  // 全タッチ点に波紋を追加
+  // 傾きセンサーの許可を要求する（まだ傾きデータが来ていなければ再試行する）
+  if (!hasTilt) {
+    requestOrientationPermission();
+  }
+
+  // 全タッチ点に波紋を追加 & タッチ位置を記録
   for (let touch of touches) {
     clicks.push({ x: touch.x, age: 0 });
+    lastTouchX = touch.x / width;
+    lastTouchY = touch.y / height;
   }
 
   return false; // デフォルト動作を抑制 & mousePressed() の発火も防ぐ
@@ -334,6 +361,10 @@ function touchStarted() {
 // 指の軌跡に沿って小さな波紋を連続的に生成する。
 function touchMoved() {
   for (let touch of touches) {
+    // タッチ位置を記録（傾きが無い場合のフォールバック操作用）
+    lastTouchX = touch.x / width;
+    lastTouchY = touch.y / height;
+
     // 直前の波紋と近すぎる場合はスキップ（波紋の洪水を防ぐ）
     let tooClose = false;
     for (let cl of clicks) {
@@ -367,24 +398,51 @@ function handleOrientation(event) {
 // DeviceOrientationEvent.requestPermission() というiOS独自のAPIを使う。
 // Androidやデスクトップではこのメソッドが存在しないので、直接リスナー登録する。
 function requestOrientationPermission() {
-  if (permissionRequested) return;
-  permissionRequested = true;
+  // 既に傾きデータが来ていれば何もしない
+  if (hasTilt) return;
 
   if (typeof DeviceOrientationEvent !== 'undefined' &&
       typeof DeviceOrientationEvent.requestPermission === 'function') {
     // iOS 13+ : ユーザーに許可ダイアログを表示
+    // requestPermission() はユーザージェスチャー（タップ）の中で呼ぶ必要がある
+    if (permissionRequested) return; // iOSでは再要求しても同じ結果になる
+    permissionRequested = true;
+
     DeviceOrientationEvent.requestPermission()
       .then(function(response) {
         if (response === 'granted') {
           window.addEventListener('deviceorientation', handleOrientation);
+          tiltStatusMsg = 'Tilt enabled';
+          statusShowTime = millis();
+        } else {
+          tiltStatusMsg = 'Touch to control waves';
+          statusShowTime = millis();
         }
       })
       .catch(function(err) {
         console.log('傾きセンサーの許可が得られませんでした:', err);
+        tiltStatusMsg = 'Touch to control waves';
+        statusShowTime = millis();
       });
+  } else if (typeof DeviceOrientationEvent !== 'undefined') {
+    // Android: 許可不要、直接リスナー登録
+    if (!permissionRequested) {
+      permissionRequested = true;
+      window.addEventListener('deviceorientation', handleOrientation);
+      // 少し待って傾きデータが来たか確認する
+      setTimeout(function() {
+        if (hasTilt) {
+          tiltStatusMsg = 'Tilt enabled';
+        } else {
+          tiltStatusMsg = 'Touch to control waves';
+        }
+        statusShowTime = millis();
+      }, 1000);
+    }
   } else {
-    // Android / デスクトップ: 許可不要、直接リスナー登録
-    window.addEventListener('deviceorientation', handleOrientation);
+    // デバイスにセンサーが無い場合
+    tiltStatusMsg = 'Touch to control waves';
+    statusShowTime = millis();
   }
 }
 
