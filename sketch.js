@@ -82,7 +82,9 @@ let hasCompass = false;     // コンパスデータが取得できたか
 // --- 空クリック → 時間帯の手動変更 ---
 // 空（画面上部30%）をクリックすると時刻を2時間ずつ進める。
 // manualHour が -1 のときは実際の時刻を使う。
+// ダブルタップで実時刻にリセットする。
 let manualHour = -1;       // -1 = 自動（実時刻）、0〜24 = 手動設定
+let lastSkyTapTime = 0;    // 前回の空タップ時刻（ダブルタップ検出用）
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
@@ -482,16 +484,27 @@ function mousePressed() {
 
   if (!soundStarted) initSound();
 
-  // 空（上部30%）をクリックしたら時間帯を2時間進める
+  // 空（上部30%）をクリック → 時間帯変更、ダブルクリック → 実時刻に戻す
   if (mouseY < height * 0.3) {
-    if (manualHour < 0) {
-      let now = new Date();
-      manualHour = (now.getHours() + 2) % 24;
+    let now_ms = millis();
+    if (now_ms - lastSkyTapTime < 400) {
+      // ダブルタップ: 実時刻に戻す
+      manualHour = -1;
+      tiltStatusMsg = 'Back to real time';
+      statusShowTime = millis();
+      lastSkyTapTime = 0;
     } else {
-      manualHour = (manualHour + 2) % 24;
+      // シングルタップ: 2時間進める
+      if (manualHour < 0) {
+        let now = new Date();
+        manualHour = (now.getHours() + 2) % 24;
+      } else {
+        manualHour = (manualHour + 2) % 24;
+      }
+      tiltStatusMsg = hourToLabel(manualHour);
+      statusShowTime = millis();
+      lastSkyTapTime = now_ms;
     }
-    tiltStatusMsg = hourToLabel(manualHour);
-    statusShowTime = millis();
     return;
   }
 
@@ -521,16 +534,25 @@ function touchStarted() {
     requestMotionPermission();
   }
 
-  // 空（上部30%）をタップしたら時間帯を2時間進める
+  // 空（上部30%）をタップ → 時間帯変更、ダブルタップ → 実時刻に戻す
   if (touches.length === 1 && touches[0].y < height * 0.3) {
-    if (manualHour < 0) {
-      let now = new Date();
-      manualHour = (now.getHours() + 2) % 24;
+    let now_ms = millis();
+    if (now_ms - lastSkyTapTime < 400) {
+      manualHour = -1;
+      tiltStatusMsg = 'Back to real time';
+      statusShowTime = millis();
+      lastSkyTapTime = 0;
     } else {
-      manualHour = (manualHour + 2) % 24;
+      if (manualHour < 0) {
+        let now = new Date();
+        manualHour = (now.getHours() + 2) % 24;
+      } else {
+        manualHour = (manualHour + 2) % 24;
+      }
+      tiltStatusMsg = hourToLabel(manualHour);
+      statusShowTime = millis();
+      lastSkyTapTime = now_ms;
     }
-    tiltStatusMsg = hourToLabel(manualHour);
-    statusShowTime = millis();
     return false;
   }
 
