@@ -63,5 +63,13 @@
     </div>
   </div>
   <script src="sketch.js"></script>
+  <script>
+  // ホーム画面から起動している場合は案内メッセージを完全に消す
+  if (window.navigator.standalone === true ||
+      window.matchMedia('(display-mode: standalone)').matches) {
+    var msg = document.getElementById('rotateMsg');
+    if (msg) msg.remove();
+  }
+  </script>
 </body>
 </html>
