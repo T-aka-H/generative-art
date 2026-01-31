@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <!-- iOS ホーム画面追加時にフルスクリーンで起動する -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Generative Art</title>
-  <!-- p5.jsライブラリをCDNから読み込む -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
   <style>
     * { margin: 0; padding: 0; }
@@ -16,52 +14,12 @@
       background: #000;
       width: 100%;
       height: 100%;
-      /* iOS Safari のセーフエリアまで広げる */
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
     canvas {
       display: block;
       touch-action: none;
     }
-
-    /* --- 起動オーバーレイ --- */
-    #startOverlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-    }
-    #startBtn {
-      color: white;
-      font-size: 20px;
-      font-family: -apple-system, sans-serif;
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.5);
-      border-radius: 16px;
-      padding: 24px 48px;
-      -webkit-tap-highlight-color: transparent;
-      /* ボタンであることを明確にする */
-      -webkit-appearance: none;
-      appearance: none;
-      cursor: pointer;
-    }
-    #startBtn:active {
-      background: rgba(255, 255, 255, 0.3);
-    }
-    #fullscreenHint {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 13px;
-      font-family: -apple-system, sans-serif;
-      margin-top: 16px;
-      text-align: center;
-      line-height: 1.6;
-    }
-
-    /* --- 縦向き時の回転メッセージ --- */
+    /* 縦向き時の回転メッセージ */
     #rotateMsg {
       display: none;
       position: fixed;
@@ -84,7 +42,6 @@
       0%, 100% { transform: rotate(0deg); }
       50% { transform: rotate(90deg); }
     }
-    /* スマートフォンが縦向きの時だけ回転メッセージを表示 */
     @media (orientation: portrait) and (max-width: 900px) {
       #rotateMsg { display: flex; }
     }
@@ -94,74 +51,10 @@
   </style>
 </head>
 <body>
-  <!-- 縦向き時の回転促進メッセージ -->
   <div id="rotateMsg">
     <div class="icon">📱</div>
     <div>横向きにしてください</div>
   </div>
-
-  <!-- 起動オーバーレイ -->
-  <div id="startOverlay">
-    <button id="startBtn" onclick="startApp()">Tap to Start</button>
-    <div id="fullscreenHint"></div>
-  </div>
-
   <script src="sketch.js"></script>
-
-  <!-- ボタン処理はp5.jsの外に置く（iOS Safari で確実に動作させるため） -->
-  <script>
-  // iOS Safari かどうかを判定
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  // ホーム画面から起動しているか（standalone mode）
-  var isStandalone = window.navigator.standalone === true;
-
-  // iOS でホーム画面追加していない場合、ヒントを表示
-  if (isIOS && !isStandalone) {
-    var hint = document.getElementById('fullscreenHint');
-    if (hint) {
-      hint.innerHTML = 'For fullscreen: Share button → Add to Home Screen';
-    }
-  }
-
-  function startApp() {
-    var overlay = document.getElementById('startOverlay');
-    if (!overlay || overlay.style.display === 'none') return;
-
-    // 音の初期化
-    if (typeof initSound === 'function' && !soundStarted) {
-      initSound();
-    }
-
-    // 傾きセンサーのパーミッション要求
-    if (typeof requestOrientationPermission === 'function') {
-      requestOrientationPermission();
-    }
-
-    // タッチデバイス判定
-    isTouchDevice = ('ontouchstart' in window);
-
-    // Fullscreen API（Android Chrome など対応ブラウザ用）
-    var el = document.documentElement;
-    if (el.requestFullscreen) {
-      el.requestFullscreen().catch(function() {});
-    }
-
-    // 横向きロック（対応ブラウザ用）
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(function() {});
-    }
-
-    // オーバーレイを消す
-    overlay.style.display = 'none';
-
-    // キャンバスサイズ再調整
-    setTimeout(function() {
-      if (typeof resizeCanvas === 'function') {
-        resizeCanvas(window.innerWidth, window.innerHeight);
-      }
-    }, 300);
-  }
-  </script>
 </body>
 </html>

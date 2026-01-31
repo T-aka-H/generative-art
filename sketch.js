@@ -8,6 +8,7 @@ let t = 0;
 let numWaves = 120;
 let clicks = [];
 let soundStarted = false;
+let appStarted = false; // スタート画面 → 本編の切り替えフラグ
 
 // --- 【新しい概念】Web Audio API ---
 // ブラウザ標準の音声生成API。外部ライブラリ不要。
@@ -41,6 +42,18 @@ function setup() {
 }
 
 function draw() {
+  // --- スタート画面（最初のタップ待ち） ---
+  // appStarted が false の間はスタート画面を表示し、本編の描画はスキップ
+  if (!appStarted) {
+    background(0);
+    fill(255);
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textSize(min(width, height) * 0.06);
+    text('Tap to Start', width / 2, height / 2);
+    return; // ここで draw() を抜ける = 本編は描画しない
+  }
+
   // --- 時刻に応じた空のグラデーション背景 ---
   // new Date() で現在時刻を取得し、時間帯ごとに空の色を変える
   let now = new Date();
@@ -329,37 +342,44 @@ function initSound() {
 
 // === mousePressed() : マウスをクリックした瞬間に1回だけ呼ばれる（デスクトップ用） ===
 function mousePressed() {
-  if (!soundStarted) {
-    initSound();
+  // スタート画面なら初期化して本編へ
+  if (!appStarted) {
+    appStarted = true;
+    if (!soundStarted) initSound();
+    return;
   }
 
+  if (!soundStarted) initSound();
   clicks.push({ x: mouseX, age: 0 });
 }
 
-// === 【新しい概念】touchStarted() ===
+// === touchStarted() ===
 // スマホで指が画面に触れた瞬間に呼ばれる。
-// return false で、ブラウザのデフォルト動作（スクロールなど）を止める。
-// これにより mousePressed() も呼ばれなくなるので、二重発火を防げる。
+// return false でブラウザのデフォルト動作とmousePressed()の発火を防ぐ。
 function touchStarted() {
-  if (!soundStarted) {
-    initSound();
+  // スタート画面なら初期化して本編へ
+  if (!appStarted) {
+    appStarted = true;
+    isTouchDevice = true;
+    if (!soundStarted) initSound();
+    requestOrientationPermission();
+    return false;
   }
 
+  if (!soundStarted) initSound();
   isTouchDevice = true;
 
-  // 傾きセンサーの許可を要求する（まだ傾きデータが来ていなければ再試行する）
   if (!hasTilt) {
     requestOrientationPermission();
   }
 
-  // 全タッチ点に波紋を追加 & タッチ位置を記録
   for (let touch of touches) {
     clicks.push({ x: touch.x, age: 0 });
     lastTouchX = touch.x / width;
     lastTouchY = touch.y / height;
   }
 
-  return false; // デフォルト動作を抑制 & mousePressed() の発火も防ぐ
+  return false;
 }
 
 // === 【新しい概念】touchMoved() ===
