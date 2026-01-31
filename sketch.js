@@ -37,22 +37,55 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   colorMode(HSB, 360, 100, 100, 100);
 
-  // --- HTMLオーバーレイのタップ処理 ---
-  // iOS Safari では、HTMLボタンのクリックが最も確実にユーザージェスチャーとして認識される。
-  // p5.js の touchStarted() だけでは、iOS のパーミッション要求が動かないことがある。
+  // --- HTMLボタンのタップ処理 ---
+  // ボタン要素に直接リスナーを付ける（iOS Safari で最も確実）
+  // click と touchend の両方を登録し、どちらが先に来ても1回だけ実行する
+  let btn = document.getElementById('startBtn');
   let overlay = document.getElementById('startOverlay');
-  if (overlay) {
-    overlay.addEventListener('click', function() {
-      // 音の初期化（AudioContext はユーザージェスチャー内で作る必要がある）
-      if (!soundStarted) {
-        initSound();
-      }
-      // 傾きセンサーのパーミッション要求
-      requestOrientationPermission();
-      isTouchDevice = 'ontouchstart' in window;
-      // オーバーレイを消す
+  let started = false;
+
+  function handleStart(e) {
+    if (started) return;
+    started = true;
+    e.preventDefault();
+
+    // 1. 全画面化（Fullscreen API）
+    // ブラウザのタブやアドレスバーを隠して画面全体を使う
+    let el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(function() {});
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen(); // Safari
+    }
+
+    // 2. 横向きにロック（全画面中のみ有効）
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(function() {});
+    }
+
+    // 3. 音の初期化
+    if (!soundStarted) {
+      initSound();
+    }
+
+    // 4. 傾きセンサーのパーミッション要求
+    requestOrientationPermission();
+    isTouchDevice = 'ontouchstart' in window;
+
+    // 5. オーバーレイを消す
+    if (overlay) {
       overlay.style.display = 'none';
-    });
+    }
+
+    // 6. キャンバスを全画面サイズに合わせ直す
+    setTimeout(function() {
+      resizeCanvas(windowWidth, windowHeight);
+    }, 500);
+  }
+
+  if (btn) {
+    btn.addEventListener('click', handleStart);
+    btn.addEventListener('touchend', handleStart);
   }
 }
 
