@@ -64,11 +64,22 @@
   </div>
   <script src="sketch.js"></script>
   <script>
-  // ホーム画面から起動している場合は案内メッセージを完全に消す
+  // ホーム画面から起動している場合は「横向きにしてください」に切り替える
   if (window.navigator.standalone === true ||
       window.matchMedia('(display-mode: standalone)').matches) {
-    var msg = document.getElementById('rotateMsg');
-    if (msg) msg.remove();
+    var icon = document.querySelector('#rotateMsg .icon');
+    var hint = document.querySelector('#rotateMsg .hint');
+    if (icon) {
+      icon.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+        '<rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>' +
+        '<path d="M12 18h.01"/>' +
+        '<path d="M20 14l2-2-2-2" opacity="0.6"/>' +
+        '<path d="M22 12h-5" opacity="0.6"/>' +
+        '</svg>';
+    }
+    if (hint) {
+      hint.textContent = 'Please rotate your device to landscape';
+    }
   }
   </script>
 </body>

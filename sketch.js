@@ -34,6 +34,38 @@ let isTouchDevice = false;  // タッチデバイスかどうか
 let tiltStatusMsg = '';     // 状態表示メッセージ
 let statusShowTime = 0;     // メッセージ表示開始時刻
 
+// --- 【新しい概念】スワイプ速度 → 風の突風 ---
+// 指の移動速度を追跡し、速いスワイプを「突風」として波に反映する。
+// prevTouchX/Y: 前フレームのタッチ位置、swipeVX/VY: スワイプ速度
+let prevTouchX = 0;
+let prevTouchY = 0;
+let swipeVX = 0;        // 横方向のスワイプ速度（-1〜1、正=右）
+let swipeVY = 0;        // 縦方向のスワイプ速度（-1〜1、正=下）
+let gustStrength = 0;   // 突風の強さ（0〜1、時間とともに減衰）
+let gustDirection = 0;  // 突風の方向（スワイプの向き）
+
+// --- 【新しい概念】長押し → 水面を押す ---
+// 指が同じ場所に留まると「水面を指で押している」効果が広がる。
+// holdTime: 同じ位置に留まっている秒数、holdX/Y: 長押し位置
+let holdTime = 0;       // 長押し経過時間（秒）
+let holdX = 0;          // 長押しのX座標
+let holdY = 0;          // 長押しのY座標
+let isHolding = false;  // 指が画面に触れているか
+let holdThreshold = 20; // この距離以内なら「動いていない」とみなすピクセル数
+
+// --- 【新しい概念】DeviceMotionEvent → 振る操作 ---
+// DeviceOrientationEvent が使えなくても、加速度センサー（DeviceMotionEvent）は
+// 使えることがある。端末を振ると大きな波が発生する。
+let shakeIntensity = 0;   // 振動の強さ（0〜1）
+let lastAccX = 0;
+let lastAccY = 0;
+let lastAccZ = 0;
+
+// --- ピンチ操作 → 波の激しさ ---
+// 2本指の間隔の変化を追跡し、広げると波が荒く、つまむと穏やかになる
+let pinchAmplitude = 1.0;  // 波の振幅倍率（0.3〜2.0）
+let lastPinchDist = 0;     // 前フレームの2指間距離
+
 function setup() {
   createCanvas(windowWidth, windowHeight);
   colorMode(HSB, 360, 100, 100, 100);
@@ -129,11 +161,31 @@ function draw() {
 
   // マウスY位置で波の振幅（高さ）を変える
   // 上にあるほど穏やか（20px）、下にあるほど荒い（80px）
-  let amplitude = 15 + my * 35;
+  // pinchAmplitude: ピンチ操作で振幅を増減できる
+  let amplitude = (15 + my * 35) * pinchAmplitude;
 
   // マウスX位置で波の流れる速さを変える
   // 左端: -2（逆流）、中央: 0（静止）、右端: +2（順流）
-  let speed = (mx - 0.5) * 4;
+  // gustDirection: スワイプの突風が流れの向きに加算される
+  let speed = (mx - 0.5) * 4 + gustDirection * gustStrength * 3;
+
+  // 振動（シェイク）による波の増幅
+  // 端末を振ると一時的に波が大きくなる
+  amplitude += shakeIntensity * 40;
+
+  // 突風・振動の減衰
+  gustStrength *= 0.97;
+  shakeIntensity *= 0.95;
+
+  // ピンチ振幅をゆっくり1.0に戻す（指を離した後、自然に元の状態へ）
+  if (touches.length < 2) {
+    pinchAmplitude = lerp(pinchAmplitude, 1.0, 0.005);
+  }
+
+  // 長押しの経過時間を更新
+  if (isHolding) {
+    holdTime += 0.016;
+  }
 
   for (let i = 0; i < numWaves; i++) {
 
@@ -207,7 +259,32 @@ function draw() {
         clickEffect += wave * 40 * fade * (i / numWaves);
       }
 
-      let y = baseY + wave1 + wave2 + n - ripple - clickEffect;
+      // --- 長押しによる「水面を押す」効果 ---
+      // 指で水面を押し続けると、押した場所を中心に波が沈み込み
+      // 周囲に波紋が広がっていく。holdTime が長いほど効果が大きくなる。
+      let holdEffect = 0;
+      if (isHolding && holdTime > 0.3) {
+        let dHold = abs(x - holdX);
+        // 押している時間に応じて影響範囲が広がる
+        let holdRadius = min(holdTime * 80, 300);
+        // 中心は沈み込み、周囲は盛り上がる
+        if (dHold < holdRadius) {
+          let holdRatio = dHold / holdRadius;
+          // 中心（holdRatio=0）→ -1（沈む）、縁（holdRatio=1）→ +0.5（盛り上がる）
+          let holdWave = -cos(holdRatio * PI) * 0.5 - 0.5 + holdRatio * 0.5;
+          let holdDepth = min(holdTime * 5, 25); // 最大25pxの深さ
+          holdEffect = holdWave * holdDepth * (i / numWaves);
+        }
+      }
+
+      // --- 突風（スワイプ）による波のうねり ---
+      // 速いスワイプが波全体をうねらせる
+      let gustEffect = 0;
+      if (gustStrength > 0.05) {
+        gustEffect = sin(x * 0.005 + t * gustDirection * 10) * gustStrength * 15 * (i / numWaves);
+      }
+
+      let y = baseY + wave1 + wave2 + n - ripple - clickEffect + holdEffect + gustEffect;
       points.push({ x: x, y: y });
     }
 
@@ -306,6 +383,23 @@ function draw() {
     textAlign(CENTER, CENTER);
     text(tiltStatusMsg, width / 2, 30);
   }
+
+  // --- 長押し中のビジュアルフィードバック ---
+  // 指で押している場所に波紋のようなリングを表示
+  if (isHolding && holdTime > 0.3) {
+    let holdAlpha = min((holdTime - 0.3) * 80, 40);
+    let holdRadius = min(holdTime * 80, 300);
+    noFill();
+    stroke(0, 0, 100, holdAlpha);
+    strokeWeight(1.5);
+    circle(holdX, holdY, holdRadius * 2);
+    // 内側のリングも追加
+    if (holdRadius > 60) {
+      stroke(0, 0, 100, holdAlpha * 0.5);
+      circle(holdX, holdY, holdRadius);
+    }
+    noStroke();
+  }
 }
 
 // --- 音を初期化する関数（最初のクリックで1回だけ呼ばれる） ---
@@ -364,6 +458,7 @@ function touchStarted() {
     isTouchDevice = true;
     if (!soundStarted) initSound();
     requestOrientationPermission();
+    requestMotionPermission();
     return false;
   }
 
@@ -372,6 +467,7 @@ function touchStarted() {
 
   if (!hasTilt) {
     requestOrientationPermission();
+    requestMotionPermission();
   }
 
   for (let touch of touches) {
@@ -380,32 +476,112 @@ function touchStarted() {
     lastTouchY = touch.y / height;
   }
 
+  // 長押し検出の初期化
+  if (touches.length === 1) {
+    holdX = touches[0].x;
+    holdY = touches[0].y;
+    holdTime = 0;
+    isHolding = true;
+  }
+
+  // スワイプ速度追跡の初期化
+  if (touches.length > 0) {
+    prevTouchX = touches[0].x;
+    prevTouchY = touches[0].y;
+  }
+
+  // 2本指タッチ時: ピンチ距離の初期値を記録
+  if (touches.length === 2) {
+    lastPinchDist = dist(touches[0].x, touches[0].y, touches[1].x, touches[1].y);
+    isHolding = false; // 2本指時は長押し無効
+  }
+
   return false;
 }
 
 // === 【新しい概念】touchMoved() ===
 // 指が画面上を移動している間、毎フレーム呼ばれる。
 // 指の軌跡に沿って小さな波紋を連続的に生成する。
+// さらにスワイプ速度・ピンチ・長押し判定も行う。
 function touchMoved() {
-  for (let touch of touches) {
+  // --- 1本指: スワイプ速度の計算 + 波紋 + 長押し判定 ---
+  if (touches.length === 1) {
+    let tx = touches[0].x;
+    let ty = touches[0].y;
+
+    // スワイプ速度を計算（前フレームとの差分）
+    let dx = tx - prevTouchX;
+    let dy = ty - prevTouchY;
+    swipeVX = constrain(dx / width * 10, -1, 1);
+    swipeVY = constrain(dy / height * 10, -1, 1);
+    let swipeSpeed = sqrt(dx * dx + dy * dy);
+
+    // 一定以上の速度でスワイプしたら「突風」を発生
+    if (swipeSpeed > 8) {
+      gustStrength = min(gustStrength + swipeSpeed * 0.003, 1.0);
+      gustDirection = swipeVX > 0 ? 1 : -1;
+    }
+
+    prevTouchX = tx;
+    prevTouchY = ty;
+
+    // 長押し判定: 指が holdThreshold 以上動いたらキャンセル
+    if (isHolding && dist(tx, ty, holdX, holdY) > holdThreshold) {
+      isHolding = false;
+      holdTime = 0;
+    }
+
     // タッチ位置を記録（傾きが無い場合のフォールバック操作用）
-    lastTouchX = touch.x / width;
-    lastTouchY = touch.y / height;
+    lastTouchX = tx / width;
+    lastTouchY = ty / height;
 
     // 直前の波紋と近すぎる場合はスキップ（波紋の洪水を防ぐ）
     let tooClose = false;
     for (let cl of clicks) {
-      if (abs(cl.x - touch.x) < 40 && cl.age < 0.1) {
+      if (abs(cl.x - tx) < 40 && cl.age < 0.1) {
         tooClose = true;
         break;
       }
     }
     if (!tooClose) {
-      clicks.push({ x: touch.x, age: 0 });
+      clicks.push({ x: tx, age: 0 });
     }
   }
 
+  // --- 2本指: ピンチ操作 → 波の激しさを変える ---
+  if (touches.length === 2) {
+    let currentDist = dist(touches[0].x, touches[0].y, touches[1].x, touches[1].y);
+    if (lastPinchDist > 0) {
+      // 指を広げる → 波が荒くなる、つまむ → 穏やかになる
+      let pinchDelta = (currentDist - lastPinchDist) * 0.005;
+      pinchAmplitude = constrain(pinchAmplitude + pinchDelta, 0.3, 2.5);
+    }
+    lastPinchDist = currentDist;
+
+    // 2本指の中点をタッチ位置として記録
+    lastTouchX = (touches[0].x + touches[1].x) / 2 / width;
+    lastTouchY = (touches[0].y + touches[1].y) / 2 / height;
+  }
+
   return false; // スクロールを防止
+}
+
+// === touchEnded() ===
+// 指が画面から離れた瞬間に呼ばれる。長押し状態をリセットする。
+function touchEnded() {
+  // 長押し終了時: 押していた場所に大きな波紋を残す
+  if (isHolding && holdTime > 0.5) {
+    clicks.push({ x: holdX, age: 0 });
+  }
+  isHolding = false;
+  holdTime = 0;
+
+  // 全指が離れたらピンチ距離をリセット
+  if (touches.length === 0) {
+    lastPinchDist = 0;
+  }
+
+  return false;
 }
 
 // === デバイスの傾き検知 ===
@@ -470,6 +646,55 @@ function requestOrientationPermission() {
     // デバイスにセンサーが無い場合
     tiltStatusMsg = 'Touch to control waves';
     statusShowTime = millis();
+  }
+}
+
+// === 【新しい概念】DeviceMotionEvent → 振る操作 ===
+// DeviceOrientationEvent（傾き）とは別のAPI。こちらは加速度を検知する。
+// acceleration.x/y/z に端末の加速度（m/s²）が入る。
+// 急激な加速度変化 = 端末を振っている → 波を荒らす。
+let motionPermissionRequested = false;
+
+function handleMotion(event) {
+  let acc = event.accelerationIncludingGravity || event.acceleration;
+  if (!acc) return;
+
+  let ax = acc.x || 0;
+  let ay = acc.y || 0;
+  let az = acc.z || 0;
+
+  // 前フレームとの差分（急激な変化）を計算
+  let deltaA = abs(ax - lastAccX) + abs(ay - lastAccY) + abs(az - lastAccZ);
+  lastAccX = ax;
+  lastAccY = ay;
+  lastAccZ = az;
+
+  // 閾値（15 m/s²以上の変化）を超えたら「振った」と判定
+  if (deltaA > 15) {
+    shakeIntensity = min(shakeIntensity + deltaA * 0.02, 1.0);
+  }
+}
+
+// === iOS 13以降のモーションパーミッション対応 ===
+// DeviceMotionEvent も requestPermission() が必要な場合がある
+function requestMotionPermission() {
+  if (motionPermissionRequested) return;
+
+  if (typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function') {
+    motionPermissionRequested = true;
+    DeviceMotionEvent.requestPermission()
+      .then(function(response) {
+        if (response === 'granted') {
+          window.addEventListener('devicemotion', handleMotion);
+        }
+      })
+      .catch(function(err) {
+        console.log('モーションセンサーの許可が得られませんでした:', err);
+      });
+  } else if (typeof DeviceMotionEvent !== 'undefined') {
+    motionPermissionRequested = true;
+    window.addEventListener('devicemotion', handleMotion);
   }
 }
 
