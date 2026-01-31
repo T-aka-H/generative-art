@@ -1,32 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#43CEA2"/>
-      <stop offset="100%" stop-color="#185A9D"/>
+      <stop offset="0%" stop-color="#1A3A5C"/>
+      <stop offset="60%" stop-color="#1B6B93"/>
+      <stop offset="100%" stop-color="#2E8B8B"/>
     </linearGradient>
   </defs>
 
-  <!-- Tropical gradient background -->
+  <!-- Dark ocean gradient background -->
   <rect width="180" height="180" fill="url(#sky)"/>
 
-  <!-- Wave 1 (back, darker) -->
-  <path d="M 0 110
-           Q 45 85, 90 110
-           Q 135 135, 180 110
+  <!-- Wave 1 (back, subtle) -->
+  <path d="M 0 88
+           Q 30 72, 60 88
+           Q 90 104, 120 88
+           Q 150 72, 180 88
            L 180 180 L 0 180 Z"
-        fill="#1565C0" opacity="0.5"/>
+        fill="#1565C0" opacity="0.4"/>
 
-  <!-- Wave 2 (middle, main) -->
+  <!-- Wave 2 (middle) -->
+  <path d="M 0 105
+           Q 35 88, 70 105
+           Q 105 122, 140 105
+           Q 165 92, 180 100
+           L 180 180 L 0 180 Z"
+        fill="#4DD0E1" opacity="0.5"/>
+
+  <!-- Wave 3 (front, bright) -->
   <path d="M 0 125
-           Q 45 100, 90 125
-           Q 135 150, 180 125
+           Q 40 110, 80 125
+           Q 120 140, 160 125
+           Q 175 118, 180 120
            L 180 180 L 0 180 Z"
-        fill="#E0F7FA" opacity="0.7"/>
+        fill="#B2EBF2" opacity="0.6"/>
 
-  <!-- Wave 3 (front, white) -->
-  <path d="M 0 145
-           Q 45 125, 90 145
-           Q 135 165, 180 145
+  <!-- Wave 4 (foreground, white foam) -->
+  <path d="M 0 148
+           Q 45 138, 90 148
+           Q 135 158, 180 148
            L 180 180 L 0 180 Z"
-        fill="#FFFFFF" opacity="0.85"/>
+        fill="#FFFFFF" opacity="0.5"/>
+
+  <!-- Sparkles -->
+  <circle cx="50" cy="70" r="2" fill="white" opacity="0.6"/>
+  <circle cx="130" cy="60" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="95" cy="80" r="1" fill="white" opacity="0.4"/>
 </svg>
