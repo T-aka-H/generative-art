@@ -46,7 +46,7 @@ function draw() {
   // appStarted が false の間はスタート画面を表示し、本編の描画はスキップ
   if (!appStarted) {
     background(0);
-    fill(255);
+    fill(0, 0, 100); // HSBで白 (色相0, 彩度0, 明度100)
     noStroke();
     textAlign(CENTER, CENTER);
     textSize(min(width, height) * 0.06);
@@ -57,7 +57,9 @@ function draw() {
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     let isStandalone = window.navigator.standalone === true;
     if (isIOS && !isStandalone) {
-      fill(255, 150);
+      // HSBモードなので (hue, sat, bri, alpha) で指定する
+      // 白 = 彩度0, 明度100、半透明
+      fill(0, 0, 100, 50);
       textSize(min(width, height) * 0.03);
       text('For fullscreen: Share button → Add to Home Screen', width / 2, height / 2 + min(width, height) * 0.12);
     }
