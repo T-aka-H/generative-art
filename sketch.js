@@ -444,16 +444,35 @@ function initSound() {
   // AudioContext = Web Audio API の出発点。すべての音のノードはここから作る
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  // === 環境音: ホワイトノイズ → ローパスフィルタ → 波の音 ===
-  // ScriptProcessorNode でホワイトノイズ（ランダムな音）を生成
-  let bufferSize = 4096;
-  ambientNode = audioCtx.createScriptProcessor(bufferSize, 0, 1);
-  ambientNode.onaudioprocess = function(e) {
-    let output = e.outputBuffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1; // -1〜1 のランダム値 = ホワイトノイズ
-    }
-  };
+  // ★ iOS対応: suspended状態を解除（これが重要！）
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+
+  // === 環境音: ノイズバッファをループ再生 ===
+  // ScriptProcessorNode は廃止予定でiOSで不安定なため、
+  // 事前生成したノイズバッファを AudioBufferSourceNode でループ再生する
+
+  // 2秒分のノイズバッファを作成
+  let sampleRate = audioCtx.sampleRate;
+  let bufferLength = sampleRate * 2;
+  let noiseBuffer = audioCtx.createBuffer(1, bufferLength, sampleRate);
+  let data = noiseBuffer.getChannelData(0);
+
+  // ブラウンノイズ（波の音に近い低音ノイズ）を生成
+  // ブラウンノイズ: 前の値に少しだけランダムを加える → 低音が強調される
+  let lastOut = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    let white = Math.random() * 2 - 1;
+    data[i] = (lastOut + (0.02 * white)) / 1.02;
+    lastOut = data[i];
+    data[i] *= 3.5; // 音量調整
+  }
+
+  // ノイズを再生するノード
+  ambientNode = audioCtx.createBufferSource();
+  ambientNode.buffer = noiseBuffer;
+  ambientNode.loop = true;
 
   // ローパスフィルタ: 高い音をカット → こもった波の音に
   let filter = audioCtx.createBiquadFilter();
@@ -462,15 +481,27 @@ function initSound() {
 
   // 音量を控えめに
   ambientGain = audioCtx.createGain();
-  ambientGain.gain.value = 0.06;
+  ambientGain.gain.value = 0.08;
 
   // ノード接続: ノイズ → フィルタ → 音量 → スピーカー
   ambientNode.connect(filter);
   filter.connect(ambientGain);
   ambientGain.connect(audioCtx.destination);
 
+  // ★ 再生開始（これがないと音が出ない）
+  ambientNode.start();
+
   soundStarted = true;
 }
+
+// === AudioContext のバックグラウンド復帰処理 ===
+// iOS では、アプリがバックグラウンドに行くと AudioContext が
+// suspended 状態になる。復帰時に resume() を呼んで音声を再開する。
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+});
 
 // === mousePressed() : マウスをクリックした瞬間に1回だけ呼ばれる（デスクトップ用） ===
 function mousePressed() {
@@ -478,11 +509,13 @@ function mousePressed() {
   if (!appStarted) {
     appStarted = true;
     if (!soundStarted) initSound();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     requestLocation();
     return;
   }
 
   if (!soundStarted) initSound();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
   // 空（上部30%）をクリック → 時間帯変更、ダブルクリック → 実時刻に戻す
   if (mouseY < height * 0.3) {
@@ -520,6 +553,7 @@ function touchStarted() {
     appStarted = true;
     isTouchDevice = true;
     if (!soundStarted) initSound();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
     requestOrientationPermission();
     requestMotionPermission();
     requestLocation();
@@ -527,6 +561,7 @@ function touchStarted() {
   }
 
   if (!soundStarted) initSound();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   isTouchDevice = true;
 
   if (!hasTilt) {
