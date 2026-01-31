@@ -13,9 +13,39 @@
       overflow: hidden;
       background: #000;
     }
+    /* タッチ操作をブラウザに横取りされないようにする */
+    canvas {
+      touch-action: none;
+    }
+    /* 起動オーバーレイ（タップで消える） */
+    #startOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+    #startBtn {
+      color: white;
+      font-size: 18px;
+      font-family: sans-serif;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      padding: 20px 40px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
   </style>
 </head>
 <body>
+  <!-- 起動オーバーレイ: iOS Safari で確実にタップイベントを受け取るためのHTML要素 -->
+  <div id="startOverlay">
+    <button id="startBtn">Tap to Start</button>
+  </div>
   <!-- sketch.js にアートのコードを書く -->
   <script src="sketch.js"></script>
 </body>

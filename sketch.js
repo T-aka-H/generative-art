@@ -36,6 +36,24 @@ let statusShowTime = 0;     // メッセージ表示開始時刻
 function setup() {
   createCanvas(windowWidth, windowHeight);
   colorMode(HSB, 360, 100, 100, 100);
+
+  // --- HTMLオーバーレイのタップ処理 ---
+  // iOS Safari では、HTMLボタンのクリックが最も確実にユーザージェスチャーとして認識される。
+  // p5.js の touchStarted() だけでは、iOS のパーミッション要求が動かないことがある。
+  let overlay = document.getElementById('startOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', function() {
+      // 音の初期化（AudioContext はユーザージェスチャー内で作る必要がある）
+      if (!soundStarted) {
+        initSound();
+      }
+      // 傾きセンサーのパーミッション要求
+      requestOrientationPermission();
+      isTouchDevice = 'ontouchstart' in window;
+      // オーバーレイを消す
+      overlay.style.display = 'none';
+    });
+  }
 }
 
 function draw() {
@@ -277,14 +295,18 @@ function draw() {
   t += 0.008;
 
   // --- 状態メッセージの表示（数秒で自動的に消える） ---
-  if (tiltStatusMsg && millis() - statusShowTime < 4000) {
-    let msgAlpha = map(millis() - statusShowTime, 3000, 4000, 100, 0);
+  if (tiltStatusMsg && millis() - statusShowTime < 5000) {
+    let msgAlpha = map(millis() - statusShowTime, 4000, 5000, 100, 0);
     msgAlpha = constrain(msgAlpha, 0, 100);
-    fill(0, 0, 100, msgAlpha);
+    // 背景付きで読みやすくする
+    fill(0, 0, 0, msgAlpha * 0.5);
     noStroke();
-    textSize(14);
-    textAlign(CENTER, TOP);
-    text(tiltStatusMsg, width / 2, 20);
+    rectMode(CENTER);
+    rect(width / 2, 30, textWidth(tiltStatusMsg) + 30, 30, 8);
+    fill(0, 0, 100, msgAlpha);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    text(tiltStatusMsg, width / 2, 30);
   }
 }
 
