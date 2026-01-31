@@ -30,6 +30,7 @@
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.5);
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 200;
@@ -50,6 +51,14 @@
     }
     #startBtn:active {
       background: rgba(255, 255, 255, 0.3);
+    }
+    #fullscreenHint {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 13px;
+      font-family: -apple-system, sans-serif;
+      margin-top: 16px;
+      text-align: center;
+      line-height: 1.6;
     }
 
     /* --- 縦向き時の回転メッセージ --- */
@@ -93,9 +102,66 @@
 
   <!-- 起動オーバーレイ -->
   <div id="startOverlay">
-    <button id="startBtn">Tap to Start</button>
+    <button id="startBtn" onclick="startApp()">Tap to Start</button>
+    <div id="fullscreenHint"></div>
   </div>
 
   <script src="sketch.js"></script>
+
+  <!-- ボタン処理はp5.jsの外に置く（iOS Safari で確実に動作させるため） -->
+  <script>
+  // iOS Safari かどうかを判定
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // ホーム画面から起動しているか（standalone mode）
+  var isStandalone = window.navigator.standalone === true;
+
+  // iOS でホーム画面追加していない場合、ヒントを表示
+  if (isIOS && !isStandalone) {
+    var hint = document.getElementById('fullscreenHint');
+    if (hint) {
+      hint.innerHTML = 'For fullscreen: Share button → Add to Home Screen';
+    }
+  }
+
+  function startApp() {
+    var overlay = document.getElementById('startOverlay');
+    if (!overlay || overlay.style.display === 'none') return;
+
+    // 音の初期化
+    if (typeof initSound === 'function' && !soundStarted) {
+      initSound();
+    }
+
+    // 傾きセンサーのパーミッション要求
+    if (typeof requestOrientationPermission === 'function') {
+      requestOrientationPermission();
+    }
+
+    // タッチデバイス判定
+    isTouchDevice = ('ontouchstart' in window);
+
+    // Fullscreen API（Android Chrome など対応ブラウザ用）
+    var el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(function() {});
+    }
+
+    // 横向きロック（対応ブラウザ用）
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(function() {});
+    }
+
+    // オーバーレイを消す
+    overlay.style.display = 'none';
+
+    // キャンバスサイズ再調整
+    setTimeout(function() {
+      if (typeof resizeCanvas === 'function') {
+        resizeCanvas(window.innerWidth, window.innerHeight);
+      }
+    }, 300);
+  }
+  </script>
 </body>
 </html>
