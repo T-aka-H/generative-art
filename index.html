@@ -6,6 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Generative Art</title>
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
   <style>
     * { margin: 0; padding: 0; }
@@ -70,11 +71,13 @@
     var icon = document.querySelector('#rotateMsg .icon');
     var hint = document.querySelector('#rotateMsg .hint');
     if (icon) {
-      icon.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
-        '<rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>' +
-        '<path d="M12 18h.01"/>' +
-        '<path d="M20 14l2-2-2-2" opacity="0.6"/>' +
-        '<path d="M22 12h-5" opacity="0.6"/>' +
+      icon.innerHTML = '<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+        '<g transform="translate(32,32) rotate(-30) translate(-32,-32)">' +
+        '<rect x="18" y="10" width="28" height="44" rx="4" stroke="white" stroke-width="2" fill="none"/>' +
+        '<circle cx="32" cy="48" r="2" fill="white" opacity="0.5"/>' +
+        '</g>' +
+        '<path d="M50 50 C56 44, 56 34, 50 28" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>' +
+        '<polyline points="47,28 50,28 50,31" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(1,-1)"/>' +
         '</svg>';
     }
     if (hint) {
