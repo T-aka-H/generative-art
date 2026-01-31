@@ -51,7 +51,18 @@ function draw() {
     textAlign(CENTER, CENTER);
     textSize(min(width, height) * 0.06);
     text('Tap to Start', width / 2, height / 2);
-    return; // ここで draw() を抜ける = 本編は描画しない
+
+    // iOS Safari（ホーム画面未追加）の場合、全画面化の案内を表示
+    let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    let isStandalone = window.navigator.standalone === true;
+    if (isIOS && !isStandalone) {
+      fill(255, 150);
+      textSize(min(width, height) * 0.03);
+      text('For fullscreen: Share button → Add to Home Screen', width / 2, height / 2 + min(width, height) * 0.12);
+    }
+
+    return;
   }
 
   // --- 時刻に応じた空のグラデーション背景 ---
