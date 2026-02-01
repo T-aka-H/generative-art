@@ -129,7 +129,50 @@
   <script>
   // ミニプレビュー: 各作品の雰囲気をcanvasで描画
   (function() {
-    // Smooth value noise with interpolation (shared by both previews)
+    // --- Waves プレビュー ---
+    var cw = document.getElementById('cvWaves');
+    var ctxW = cw.getContext('2d');
+    var W = cw.width = 400;
+    var H = cw.height = 225;
+    var tW = 0;
+
+    function drawWaves() {
+      ctxW.fillStyle = 'rgba(0,0,15,0.15)';
+      ctxW.fillRect(0, 0, W, H);
+      for (var layer = 0; layer < 8; layer++) {
+        var yBase = H * 0.3 + layer * (H * 0.08);
+        var alpha = 0.12 + layer * 0.03;
+        var hue = 200 + layer * 8 + Math.sin(tW * 0.3 + layer) * 15;
+        ctxW.beginPath();
+        ctxW.moveTo(0, H);
+        for (var x = 0; x <= W; x += 4) {
+          var y = yBase
+            + Math.sin(x * 0.015 + tW * 0.5 + layer * 0.8) * 12
+            + Math.sin(x * 0.008 + tW * 0.3 - layer * 0.5) * 8
+            + Math.sin(x * 0.025 + tW * 0.7 + layer * 1.2) * 4;
+          ctxW.lineTo(x, y);
+        }
+        ctxW.lineTo(W, H);
+        ctxW.closePath();
+        ctxW.fillStyle = 'hsla(' + hue + ',40%,' + (15 + layer * 4) + '%,' + alpha + ')';
+        ctxW.fill();
+      }
+      tW += 0.02;
+      requestAnimationFrame(drawWaves);
+    }
+    drawWaves();
+
+    // --- Aurora プレビュー ---
+    var ca = document.getElementById('cvAurora');
+    var ctxA = ca.getContext('2d');
+    var AW = ca.width = 400;
+    var AH = ca.height = 225;
+    var tA = 0;
+    var dotA = 4;
+    var colsA = Math.ceil(AW / dotA);
+    var rowsA = Math.ceil(AH / dotA);
+
+    // Smooth value noise with interpolation
     function hash2(ix, iy) {
       var n = Math.sin(ix * 127.1 + iy * 311.7) * 43758.5453;
       return n - Math.floor(n);
@@ -149,67 +192,6 @@
       return vnoise(x + iz * 17.3, y + iz * 31.7) * (1 - fz)
            + vnoise(x + (iz+1) * 17.3, y + (iz+1) * 31.7) * fz;
     }
-
-    // --- Waves プレビュー (ドットグリッド海洋スタイル) ---
-    var cw = document.getElementById('cvWaves');
-    var ctxW = cw.getContext('2d');
-    var W = cw.width = 400;
-    var H = cw.height = 225;
-    var tW = 0;
-    var dotW = 4;
-    var colsW = Math.ceil(W / dotW);
-    var rowsW = Math.ceil(H / dotW);
-    var oceanHues = [195, 200, 210, 185, 205, 180, 215, 190];
-
-    function drawWaves() {
-      for (var r = 0; r < rowsW; r++) {
-        for (var c = 0; c < colsW; c++) {
-          var gx = c * dotW;
-          var gy = r * dotW;
-          var depthR = gy / H;
-          var depthAmp = 0.4 + depthR * 0.6;
-          // Wave height field: layered sin waves + noise
-          var w1 = Math.sin(gx * 0.02 + tW * 4 + gy * 0.005) * 1.0;
-          var w2 = Math.sin(gx * 0.035 - tW * 2.5 + gy * 0.01) * 0.5;
-          var w3 = Math.sin(gx * 0.06 + tW * 5 - gy * 0.015) * 0.25;
-          var wn = vnoise3(gx * 0.015 + tW * 0.5, gy * 0.025, tW * 2) * 0.6 - 0.3;
-          var wH = (w1 + w2 + w3 + wn) * depthAmp;
-          // Hue from wave height + depth
-          var wNorm = (wH + 1.5) / 3.0;
-          var ciRaw = (wNorm + vnoise3(gx * 0.005 + 30, gy * 0.01 + 30, tW * 0.3) * 0.3) * 8;
-          var ci0 = Math.floor(ciRaw) % 8;
-          if (ci0 < 0) ci0 += 8;
-          var ci1 = (ci0 + 1) % 8;
-          var frac = ciRaw - Math.floor(ciRaw);
-          var h = oceanHues[ci0] + (oceanHues[ci1] - oceanHues[ci0]) * frac + depthR * 15;
-          h = ((h % 360) + 360) % 360;
-          // Brightness from wave height + depth
-          var l = (12 + wNorm * 28) * (1.2 - depthR * 0.5);
-          var s = 40 + depthR * 15 + wH * 5;
-          // Foam at crests
-          if (wH > 0.5 && depthR < 0.6) {
-            var foam = (wH - 0.5) * 1.5 * (1 - depthR);
-            s *= (1 - foam * 0.5);
-            l += foam * 15;
-          }
-          ctxW.fillStyle = 'hsl(' + h + ',' + s + '%,' + l + '%)';
-          ctxW.fillRect(gx, gy, dotW, dotW);
-        }
-      }
-      tW += 0.008;
-      requestAnimationFrame(drawWaves);
-    }
-    drawWaves();
-
-    // --- Aurora プレビュー ---
-    var ca = document.getElementById('cvAurora');
-    var ctxA = ca.getContext('2d');
-    var AW = ca.width = 400;
-    var AH = ca.height = 225;
-    var tA = 0;
-    var dotA = 4;
-    var colsA = Math.ceil(AW / dotA);
-    var rowsA = Math.ceil(AH / dotA);
 
     var auroraHues = [240, 270, 310, 200, 160, 120, 280, 350];
 
