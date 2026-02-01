@@ -2,89 +2,204 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Waves</title>
-  <meta name="apple-mobile-web-app-title" content="Waves">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <title>Generative Art</title>
   <style>
-    * { margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      overflow: hidden;
       background: #000;
-      width: 100%;
-      height: 100%;
+      color: #fff;
+      width: 100%; height: 100%;
+      font-family: Georgia, 'Times New Roman', serif;
+      overflow-x: hidden;
     }
-    canvas {
-      display: block;
-      touch-action: none;
-    }
-    #rotateMsg {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 20, 0.95);
-      z-index: 300;
+    body {
+      display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      color: white;
+      min-height: 100vh;
+    }
+    header {
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 10px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+    }
+    .gallery {
+      display: flex;
+      flex-direction: column;
+      gap: 60px;
+      padding: 0 24px 80px;
+      max-width: 800px;
+      width: 100%;
+    }
+    .work {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: border-color 0.5s ease;
+    }
+    .work:hover {
+      border-color: rgba(255,255,255,0.25);
+    }
+    .work-preview {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      position: relative;
+      background: #080808;
+    }
+    .work-preview canvas {
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .work-info {
+      padding: 24px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .work-title {
+      font-size: 20px;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.8);
+      transition: color 0.3s;
+    }
+    .work:hover .work-title { color: #fff; }
+    .work-sub {
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.25);
       font-family: -apple-system, sans-serif;
     }
-    #rotateMsg .icon {
-      margin-bottom: 24px;
-    }
-    #rotateMsg .hint {
-      font-size: 14px;
-      line-height: 2;
+    footer {
+      padding: 40px 0;
       text-align: center;
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255,255,255,0.15);
+      font-size: 11px;
+      letter-spacing: 3px;
+      font-family: -apple-system, sans-serif;
     }
-    @media (orientation: portrait) and (max-width: 900px) {
-      #rotateMsg { display: flex; }
-    }
-    @media (orientation: landscape) {
-      #rotateMsg { display: none !important; }
+    @media (max-width: 600px) {
+      header { padding: 50px 0 40px; }
+      header h1 { font-size: 12px; letter-spacing: 8px; }
+      .gallery { gap: 40px; padding: 0 16px 60px; }
+      .work-info { padding: 18px 20px; }
+      .work-title { font-size: 16px; letter-spacing: 6px; }
+      .work-sub { font-size: 10px; }
     }
   </style>
 </head>
 <body>
-  <div id="rotateMsg">
-    <div class="icon">
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/>
-        <polyline points="12 3 12 15"/>
-        <polyline points="8 7 12 3 16 7"/>
-      </svg>
-    </div>
-    <div class="hint">
-      共有ボタン → ホーム画面に追加 してから起動してください<br>
-      Share → Add to Home Screen for fullscreen
-    </div>
+  <header>
+    <h1>Generative Art</h1>
+  </header>
+  <div class="gallery">
+    <a href="./waves/" class="work">
+      <div class="work-preview">
+        <canvas id="cvWaves"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Waves</span>
+        <span class="work-sub">Interactive Ocean</span>
+      </div>
+    </a>
+    <a href="./aurora/" class="work">
+      <div class="work-preview">
+        <canvas id="cvAurora"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Aurora</span>
+        <span class="work-sub">Mosaic of Light</span>
+      </div>
+    </a>
   </div>
-  <script src="sketch.js"></script>
+  <footer>tap a work to enter</footer>
+
   <script>
-  // ホーム画面から起動している場合は「横向きにしてください」に切り替える
-  if (window.navigator.standalone === true ||
-      window.matchMedia('(display-mode: standalone)').matches) {
-    var icon = document.querySelector('#rotateMsg .icon');
-    var hint = document.querySelector('#rotateMsg .hint');
-    if (icon) {
-      icon.innerHTML = '<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-        '<g transform="translate(32,32) rotate(-30) translate(-32,-32)">' +
-        '<rect x="18" y="10" width="28" height="44" rx="4" stroke="white" stroke-width="2" fill="none"/>' +
-        '<circle cx="32" cy="48" r="2" fill="white" opacity="0.5"/>' +
-        '</g>' +
-        '<path d="M50 50 C56 44, 56 34, 50 28" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-        '<polyline points="47,28 50,28 50,31" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" transform="translate(1,-1)"/>' +
-        '</svg>';
+  // ミニプレビュー: 各作品の雰囲気をcanvasで描画
+  (function() {
+    // --- Waves プレビュー ---
+    var cw = document.getElementById('cvWaves');
+    var ctxW = cw.getContext('2d');
+    var W = cw.width = 400;
+    var H = cw.height = 225;
+    var tW = 0;
+
+    function drawWaves() {
+      ctxW.fillStyle = 'rgba(0,0,15,0.15)';
+      ctxW.fillRect(0, 0, W, H);
+      for (var layer = 0; layer < 8; layer++) {
+        var yBase = H * 0.3 + layer * (H * 0.08);
+        var alpha = 0.12 + layer * 0.03;
+        var hue = 200 + layer * 8 + Math.sin(tW * 0.3 + layer) * 15;
+        ctxW.beginPath();
+        ctxW.moveTo(0, H);
+        for (var x = 0; x <= W; x += 4) {
+          var y = yBase
+            + Math.sin(x * 0.015 + tW * 0.5 + layer * 0.8) * 12
+            + Math.sin(x * 0.008 + tW * 0.3 - layer * 0.5) * 8
+            + Math.sin(x * 0.025 + tW * 0.7 + layer * 1.2) * 4;
+          ctxW.lineTo(x, y);
+        }
+        ctxW.lineTo(W, H);
+        ctxW.closePath();
+        ctxW.fillStyle = 'hsla(' + hue + ',40%,' + (15 + layer * 4) + '%,' + alpha + ')';
+        ctxW.fill();
+      }
+      tW += 0.02;
+      requestAnimationFrame(drawWaves);
     }
-    if (hint) {
-      hint.textContent = 'Please rotate your device to landscape';
+    drawWaves();
+
+    // --- Aurora プレビュー ---
+    var ca = document.getElementById('cvAurora');
+    var ctxA = ca.getContext('2d');
+    var AW = ca.width = 400;
+    var AH = ca.height = 225;
+    var tA = 0;
+    var dotA = 8;
+    var colsA = Math.ceil(AW / dotA);
+    var rowsA = Math.ceil(AH / dotA);
+
+    // Simple noise approximation
+    function pseudoNoise(x, y, z) {
+      var n = Math.sin(x * 12.9898 + y * 78.233 + z * 45.164) * 43758.5453;
+      n = n - Math.floor(n);
+      var m = Math.sin(x * 4.898 + y * 7.23 + z * 13.16) * 23421.631;
+      m = m - Math.floor(m);
+      return (n + m) * 0.5;
     }
-  }
+
+    function drawAurora() {
+      for (var r = 0; r < rowsA; r++) {
+        for (var c = 0; c < colsA; c++) {
+          var gx = c * dotA;
+          var gy = r * dotA;
+          var nx = gx * 0.004 + tA * 0.1;
+          var ny = gy * 0.006 + tA * 0.08;
+          var h = pseudoNoise(nx, ny, tA * 0.05) * 360;
+          var s = 50 + pseudoNoise(nx + 100, ny + 100, tA * 0.03) * 30;
+          var l = 15 + pseudoNoise(nx + 200, ny + 200, tA * 0.04) * 25;
+          ctxA.fillStyle = 'hsl(' + h + ',' + s + '%,' + l + '%)';
+          ctxA.fillRect(gx, gy, dotA, dotA);
+        }
+      }
+      tA += 0.008;
+      requestAnimationFrame(drawAurora);
+    }
+    drawAurora();
+  })();
   </script>
 </body>
 </html>
