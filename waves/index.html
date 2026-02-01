@@ -125,18 +125,15 @@
       if(dx>minSwipe && dx>dy*1.5){ swiping=false; show(); }
     }, {passive:true});
     document.addEventListener('touchend', function(){ swiping=false; }, {passive:true});
-    // Desktop: mousedown near left edge + drag
-    var mDown=false, mStartX=0, mStartY=0;
+    // Desktop: left+right click simultaneously
+    var buttons={};
     document.addEventListener('mousedown', function(e){
       if(isOpen) return;
-      if(e.clientX<edgeZone){ mDown=true; mStartX=e.clientX; mStartY=e.clientY; }
+      buttons[e.button]=true;
+      if(buttons[0]&&buttons[2]){ buttons={}; show(); }
     });
-    document.addEventListener('mousemove', function(e){
-      if(!mDown||isOpen) return;
-      var dx=e.clientX-mStartX, dy=Math.abs(e.clientY-mStartY);
-      if(dx>minSwipe && dx>dy*1.5){ mDown=false; show(); }
-    });
-    document.addEventListener('mouseup', function(){ mDown=false; });
+    document.addEventListener('mouseup', function(e){ delete buttons[e.button]; });
+    document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
     ov.addEventListener('click', function(e){ if(e.target===ov||e.target.classList.contains('nav-hint')) hide(); });
     ov.addEventListener('touchstart', function(e){
       if(e.target===ov||e.target.classList.contains('nav-hint')){ hide(); e.preventDefault(); }
