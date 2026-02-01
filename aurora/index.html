@@ -138,6 +138,17 @@
     ov.addEventListener('touchstart', function(e){
       if(e.target===ov||e.target.classList.contains('nav-hint')){ hide(); e.preventDefault(); }
     });
+    // モバイルでリンクが効かない問題の対策: 明示的にナビゲーション
+    var navLinks=ov.querySelectorAll('.nav-item');
+    for(var i=0;i<navLinks.length;i++){
+      (function(link){
+        link.addEventListener('touchend', function(e){
+          e.stopPropagation();
+          e.preventDefault();
+          window.location.href=link.href;
+        });
+      })(navLinks[i]);
+    }
   })();
   </script>
   <script>

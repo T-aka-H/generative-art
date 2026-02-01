@@ -200,6 +200,11 @@ function draw() {
   } else {
     speed = (mx - 0.5) * 4;
   }
+  // 常に最低限の横方向の流れを保つ（波が静止して見えるのを防ぐ）
+  let baseFlow = 0.8;
+  if (abs(speed) < baseFlow) {
+    speed = speed >= 0 ? baseFlow : -baseFlow;
+  }
   speed += gustDirection * gustStrength * 3;
 
   // 振動（シェイク）による波の増幅
@@ -227,7 +232,9 @@ function draw() {
     // 各層ごとに位相（i * 0.15）をずらすことで、奥から手前へ波が伝わるように見える
     let surge = sin(t * 2.5 - i * 0.15) * (10 + ratio * 20);
     let surgeNoise = noise(i * 0.1, t * 0.6) * 15;
-    let baseY = height * 0.3 + ratio * height * 0.7 + surge + surgeNoise;
+    // 大きなうねり: 長周期の波が層全体をゆっくり上下させる
+    let swell = sin(t * 0.8 + i * 0.3) * (5 + ratio * 12);
+    let baseY = height * 0.3 + ratio * height * 0.7 + surge + surgeNoise + swell;
 
     // 海の色も時刻に連動させる
     let daylight = constrain(map(h, 5, 10, 0, 1), 0, 1) - constrain(map(h, 18, 21, 0, 1), 0, 1);
@@ -268,12 +275,16 @@ function draw() {
     let points = [];
     for (let x = -30; x <= width + 30; x += 3) {
       // sin波を控えめに、ノイズを主役にして不規則な波にする
-      let wave1 = sin(x * 0.003 + t * speed + i * 0.8) * amplitude;
-      let wave2 = sin(x * 0.008 + t * speed * 0.5 - i * 0.5) * (amplitude * 0.3);
+      // 水平方向のオフセットを時間で変化させ、波が左右に流れて見えるようにする
+      let flowOffset = t * speed * 80;
+      let wave1 = sin(x * 0.003 + t * speed * 1.5 + i * 0.8) * amplitude;
+      let wave2 = sin(x * 0.008 + t * speed * 0.8 - i * 0.5) * (amplitude * 0.3);
+      let wave3 = sin(x * 0.012 + t * speed * 1.2 + i * 1.3) * (amplitude * 0.15);
       // ノイズを3層重ねて複雑な不規則さを出す
-      let n1 = noise(x * 0.002, i * 0.3, t * 0.3) * 40;
-      let n2 = noise(x * 0.006, i * 0.7 + 100, t * 0.5) * 20;
-      let n3 = noise(x * 0.015, i * 1.2 + 200, t * 0.2) * 10;
+      // flowOffset でノイズパターン自体も横に流れる
+      let n1 = noise((x + flowOffset) * 0.002, i * 0.3, t * 0.3) * 40;
+      let n2 = noise((x + flowOffset * 0.7) * 0.006, i * 0.7 + 100, t * 0.5) * 20;
+      let n3 = noise((x + flowOffset * 0.4) * 0.015, i * 1.2 + 200, t * 0.2) * 10;
       let n = n1 + n2 + n3;
 
       // --- 【新しい概念】touches[] ---
@@ -332,7 +343,7 @@ function draw() {
         gustEffect = sin(x * 0.005 + t * gustDirection * 10) * gustStrength * 15 * (i / numWaves);
       }
 
-      let y = baseY + wave1 + wave2 + n - ripple - clickEffect + holdEffect + gustEffect;
+      let y = baseY + wave1 + wave2 + wave3 + n - ripple - clickEffect + holdEffect + gustEffect;
       points.push({ x: x, y: y });
     }
 
