@@ -97,19 +97,14 @@
     <a href="../" class="nav-item">Gallery</a>
     <div class="nav-sep"></div>
     <a href="../waves/" class="nav-item">Waves</a>
-    <div class="nav-hint">triple tap to toggle</div>
+    <div class="nav-hint">swipe from left edge</div>
   </div>
   <script src="sketch.js"></script>
   <script>
   (function(){
-    var taps=[], ov=document.getElementById('navOverlay'), isOpen=false, isTouch=false;
-    function onTap(){
-      if(isOpen) return;
-      var now=Date.now();
-      taps.push(now);
-      taps=taps.filter(function(t){ return now-t<800; });
-      if(taps.length>=3){ taps=[]; show(); }
-    }
+    var ov=document.getElementById('navOverlay'), isOpen=false;
+    var edgeZone=30, minSwipe=60;
+    var startX=0, startY=0, swiping=false;
     function show(){
       isOpen=true; ov.style.display='flex';
       ov.offsetHeight; ov.classList.add('visible');
@@ -118,8 +113,30 @@
       isOpen=false; ov.classList.remove('visible');
       setTimeout(function(){ if(!isOpen) ov.style.display='none'; }, 800);
     }
-    document.addEventListener('touchstart', function(){ isTouch=true; onTap(); }, {passive:true});
-    document.addEventListener('mousedown', function(){ if(!isTouch) onTap(); });
+    document.addEventListener('touchstart', function(e){
+      if(isOpen) return;
+      var t=e.touches[0];
+      if(t.clientX<edgeZone){ startX=t.clientX; startY=t.clientY; swiping=true; }
+    }, {passive:true});
+    document.addEventListener('touchmove', function(e){
+      if(!swiping||isOpen) return;
+      var t=e.touches[0];
+      var dx=t.clientX-startX, dy=Math.abs(t.clientY-startY);
+      if(dx>minSwipe && dx>dy*1.5){ swiping=false; show(); }
+    }, {passive:true});
+    document.addEventListener('touchend', function(){ swiping=false; }, {passive:true});
+    // Desktop: mousedown near left edge + drag
+    var mDown=false, mStartX=0, mStartY=0;
+    document.addEventListener('mousedown', function(e){
+      if(isOpen) return;
+      if(e.clientX<edgeZone){ mDown=true; mStartX=e.clientX; mStartY=e.clientY; }
+    });
+    document.addEventListener('mousemove', function(e){
+      if(!mDown||isOpen) return;
+      var dx=e.clientX-mStartX, dy=Math.abs(e.clientY-mStartY);
+      if(dx>minSwipe && dx>dy*1.5){ mDown=false; show(); }
+    });
+    document.addEventListener('mouseup', function(){ mDown=false; });
     ov.addEventListener('click', function(e){ if(e.target===ov||e.target.classList.contains('nav-hint')) hide(); });
     ov.addEventListener('touchstart', function(e){
       if(e.target===ov||e.target.classList.contains('nav-hint')){ hide(); e.preventDefault(); }

@@ -296,7 +296,7 @@ function draw() {
   image(pg, 0, 0, width, height);
 
   // ==============================================
-  // 星の描画（時刻連動 + 毎時の煌めき）
+  // 星の描画（時刻連動）
   // ==============================================
   rectMode(CENTER);
 
@@ -309,26 +309,11 @@ function draw() {
   else if (hNorm < 20) nightBri = lerp(0.12, 1.0, (hNorm - 17) / 3);
   else nightBri = 1.0;
 
-  // 毎時0分の煌めきイベント（約60秒かけてカスケード）
-  let minuteInHour = (h - floor(h)) * 60;
-  let hourlySparkle = 0;
-  if (minuteInHour < 1) {
-    hourlySparkle = pow(1 - minuteInHour, 2);
-  }
-
   for (let s of stars) {
     let twinkle = noise(s.noiseOff, t * 0.4) * 0.7 + 0.3;
-
-    // 毎時の煌めき: 各星に異なるタイミングでフラッシュ
-    let sparkle = 0;
-    if (hourlySparkle > 0) {
-      let phase = noise(s.noiseOff + 777);
-      sparkle = max(0, sin((minuteInHour - phase * 0.8) * PI * 5)) * hourlySparkle;
-    }
-
-    let a = s.baseAlpha * twinkle * nightBri + sparkle * 100;
+    let a = s.baseAlpha * twinkle * nightBri;
     let starHue = lerpHue(s.hue, lerpHue(cur.hues[0], nxt.hues[0], tb), 0.15);
-    let ss = s.size * (0.8 + twinkle * 0.4 + sparkle * 3);
+    let ss = s.size * (0.8 + twinkle * 0.4);
     fill(starHue, s.sat, s.bri, min(a, 100));
     rect(s.x, s.y, ss, ss);
   }
