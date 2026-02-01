@@ -168,29 +168,54 @@
     var AW = ca.width = 400;
     var AH = ca.height = 225;
     var tA = 0;
-    var dotA = 8;
+    var dotA = 4;
     var colsA = Math.ceil(AW / dotA);
     var rowsA = Math.ceil(AH / dotA);
 
-    // Simple noise approximation
-    function pseudoNoise(x, y, z) {
-      var n = Math.sin(x * 12.9898 + y * 78.233 + z * 45.164) * 43758.5453;
-      n = n - Math.floor(n);
-      var m = Math.sin(x * 4.898 + y * 7.23 + z * 13.16) * 23421.631;
-      m = m - Math.floor(m);
-      return (n + m) * 0.5;
+    // Smooth value noise with interpolation
+    function hash2(ix, iy) {
+      var n = Math.sin(ix * 127.1 + iy * 311.7) * 43758.5453;
+      return n - Math.floor(n);
     }
+    function vnoise(x, y) {
+      var ix = Math.floor(x), iy = Math.floor(y);
+      var fx = x - ix, fy = y - iy;
+      fx = fx * fx * (3 - 2 * fx);
+      fy = fy * fy * (3 - 2 * fy);
+      var a = hash2(ix, iy), b = hash2(ix+1, iy);
+      var c = hash2(ix, iy+1), d = hash2(ix+1, iy+1);
+      return a + (b-a)*fx + (c-a)*fy + (a-b-c+d)*fx*fy;
+    }
+    function vnoise3(x, y, z) {
+      var iz = Math.floor(z), fz = z - iz;
+      fz = fz * fz * (3 - 2 * fz);
+      return vnoise(x + iz * 17.3, y + iz * 31.7) * (1 - fz)
+           + vnoise(x + (iz+1) * 17.3, y + (iz+1) * 31.7) * fz;
+    }
+
+    var auroraHues = [240, 270, 310, 200, 160, 120, 280, 350];
 
     function drawAurora() {
       for (var r = 0; r < rowsA; r++) {
         for (var c = 0; c < colsA; c++) {
           var gx = c * dotA;
           var gy = r * dotA;
-          var nx = gx * 0.004 + tA * 0.1;
-          var ny = gy * 0.006 + tA * 0.08;
-          var h = pseudoNoise(nx, ny, tA * 0.05) * 360;
-          var s = 50 + pseudoNoise(nx + 100, ny + 100, tA * 0.03) * 30;
-          var l = 15 + pseudoNoise(nx + 200, ny + 200, tA * 0.04) * 25;
+          // Domain warping
+          var warpX = vnoise3(gx * 0.008, gy * 0.008, tA * 0.4) * 60 - 30;
+          var warpY = vnoise3(gx * 0.008 + 5, gy * 0.008 + 5, tA * 0.4) * 60 - 30;
+          var wx = gx + warpX;
+          var wy = gy + warpY;
+          // Palette selection with smooth interpolation
+          var ciRaw = vnoise3(wx * 0.005, wy * 0.005, tA * 0.5) * 8;
+          var ci0 = Math.floor(ciRaw) % 8;
+          var ci1 = (ci0 + 1) % 8;
+          var frac = ciRaw - Math.floor(ciRaw);
+          var baseH = auroraHues[ci0] + (auroraHues[ci1] - auroraHues[ci0]) * frac;
+          var hueShift = vnoise3(wx * 0.004 + 10, wy * 0.01 + 10, tA * 0.3) * 60 - 30;
+          var h = ((baseH + hueShift) % 360 + 360) % 360;
+          var briN = vnoise3(wx * 0.005 + 20, wy * 0.01 + 20, tA * 0.4);
+          var s = 45 + briN * 30;
+          var l = 12 + briN * 28;
           ctxA.fillStyle = 'hsl(' + h + ',' + s + '%,' + l + '%)';
           ctxA.fillRect(gx, gy, dotA, dotA);
         }

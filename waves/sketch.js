@@ -230,17 +230,28 @@ function draw() {
     let baseY = height * 0.3 + ratio * height * 0.7 + surge + surgeNoise;
 
     // 海の色も時刻に連動させる
-    // daylight: 昼(10〜16時)で1.0、夜(21〜5時)で0.0、間は滑らかに変化
     let daylight = constrain(map(h, 5, 10, 0, 1), 0, 1) - constrain(map(h, 18, 21, 0, 1), 0, 1);
     daylight = max(daylight, 0);
-    // --- 緯度（climateFactor）による海の色味の変化 ---
-    // climateFactor: 0=北極（暗い灰青）、0.5=温帯（通常）、1=熱帯（ターコイズ）
-    // 熱帯: 色相が低め（180前後=ターコイズ）、彩度高、明るい
-    // 北極: 色相が高め（230前後=紺）、彩度低、暗い
+
+    // 朝焼け・夕焼けの暖色ファクター（6-7時、18-19時にピーク）
+    let hNorm = ((h % 24) + 24) % 24;
+    let dawnDusk = 0;
+    if (hNorm > 5 && hNorm < 8) dawnDusk = sin((hNorm - 5) / 3 * PI);
+    if (hNorm > 17 && hNorm < 20) dawnDusk = sin((hNorm - 17) / 3 * PI);
+
+    // 緯度による海の色味（熱帯=ターコイズ、北極=紺）
     let tropicalHue = lerp(200, 180, daylight) - ratio * 15;
     let arcticHue = lerp(230, 220, daylight) - ratio * 10;
     let hue = lerp(arcticHue, tropicalHue, climateFactor);
-    let saturation = lerp(20, 35, daylight) + ratio * 30 + climateFactor * 15;
+
+    // 朝焼け・夕焼け: 表面ほど暖色に（オレンジ〜紫）
+    hue += dawnDusk * lerp(35, -30, ratio);
+
+    // レイヤーごとのノイズ揺らぎで色彩に奥行き
+    let hueNoise = noise(i * 0.3, t * 0.15) * 30 - 15;
+    hue += hueNoise;
+
+    let saturation = lerp(25, 45, daylight) + ratio * 30 + climateFactor * 15 + dawnDusk * 20;
     let brightness = lerp(15, 70, daylight) + ratio * lerp(25, 30, daylight) + climateFactor * 10;
     let alpha = 70 + ratio * 25;
 
