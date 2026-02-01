@@ -192,7 +192,7 @@ function draw() {
   flowOffY += gustDirY * gustStrength * 0.005;
 
   // ==============================================
-  // グリッドドット: ピクセルバッファで高速描画
+  // グリッドドット: 波高フィールドで海面を描画
   // ==============================================
   let pgW = pg.width;
   let pgH = pg.height;
@@ -204,15 +204,19 @@ function draw() {
   let pointerRadius = 250;
   let prSq = pointerRadius * pointerRadius;
 
-  // climateFactor による色相シフト: 熱帯=ターコイズ寄り、北極=紺寄り
-  let climateHueShift = (climateFactor - 0.5) * -20; // 熱帯: -10(グリーン寄り), 北極: +10(ブルー寄り)
+  // climateFactor による色相シフト
+  let climateHueShift = (climateFactor - 0.5) * -20;
 
-  // 日照によるスパークル強度
+  // 日照
   let hNorm = ((h % 24) + 24) % 24;
   let daylight = 0;
   if (hNorm >= 6 && hNorm <= 18) {
     daylight = sin((hNorm - 6) / 12 * PI);
   }
+
+  // 波の速度パラメータ
+  let waveSpeed = flowOffX * 50;
+  let ampScale = pinchScale;
 
   pg.loadPixels();
   let pxArr = pg.pixels;
@@ -227,21 +231,26 @@ function draw() {
       // 深さの比率 (0=水面, 1=深海)
       let depthRatio = gy / (pgH * dotSize);
 
-      // --- ドメインワーピング: 水平方向を強調して波の流れ ---
-      let nScale = 0.001 * pinchScale;
-      let warpX = noise(gx * nScale, gy * nScale * 0.7, t * 0.06 + flowOffX) * 600 - 300;
-      let warpY = noise(gx * nScale + 50, gy * nScale * 0.7 + 50, t * 0.04 + flowOffY) * 300 - 150;
+      // --- 波高フィールド: 重ねたsin波 + ノイズで海面のうねり ---
+      // 大きなうねり（低周波）
+      let w1 = sin(gx * 0.004 + t * 0.8 + waveSpeed + gy * 0.001) * 1.0 * ampScale;
+      let w2 = sin(gx * 0.007 - t * 0.5 + waveSpeed * 0.7 + gy * 0.002) * 0.6 * ampScale;
+      // 中くらいの波
+      let w3 = sin(gx * 0.015 + t * 1.2 + waveSpeed * 1.3 - gy * 0.003) * 0.3 * ampScale;
+      let w4 = sin(gx * 0.025 + t * 0.9 + waveSpeed * 0.5 + gy * 0.005) * 0.15 * ampScale;
+      // ノイズで不規則さ
+      let wn = noise(gx * 0.003 + flowOffX * 5, gy * 0.005 + flowOffY, t * 0.3) * 0.8 - 0.4;
+      // 奥（上）は波が小さく、手前（下）は大きく
+      let depthAmp = 0.4 + depthRatio * 0.6;
+      let waveH = (w1 + w2 + w3 + w4 + wn) * depthAmp; // -1 〜 +1 程度
 
-      // 波のうねり: sin波的な大きな横の流れ
-      let waveSurge = sin(gy * 0.003 + t * 0.3 + gx * 0.0005) * 80;
-      warpX += waveSurge;
-
-      let wx = gx + warpX;
-      let wy = gy + warpY;
-
-      // --- 色相: パレット間をスムーズに補間 ---
-      let ciRaw = noise(wx * 0.0008 + flowOffX * 2, wy * 0.0008 + flowOffY, t * 0.05) * 8;
+      // --- 色相: テーマパレットから波高で選択 ---
+      // 波高を0〜1にマッピングしてパレットインデックスに
+      let ciNorm = (waveH + 1.5) * 0.33; // おおよそ 0〜1
+      ciNorm += noise(gx * 0.001 + 300, gy * 0.002 + 300, t * 0.05) * 0.3;
+      let ciRaw = ciNorm * 8;
       let ci0 = floor(ciRaw) % 8;
+      if (ci0 < 0) ci0 += 8;
       let ci1 = (ci0 + 1) % 8;
       let ciFrac = ciRaw - floor(ciRaw);
       let baseHue = lerpHue(
@@ -250,49 +259,39 @@ function draw() {
         ciFrac
       );
 
-      // 色相ゆらぎ層
-      let hue1 = noise(wx * 0.0006 + flowOffX, wy * 0.001 + flowOffY, t * 0.04) * 60 - 30;
-      let hue2 = noise(wx * 0.002 + 200, wy * 0.002 + 200, t * 0.08) * 40 - 20;
+      // 深さで色相シフト（深いほど青寄り）
+      let hue = (baseHue + depthRatio * 20 + climateHueShift + 360) % 360;
 
-      // 深さに応じた色相シフト (深いほど青寄り)
-      let depthHueShift = depthRatio * 15;
+      // --- 明度: 波の山は明るく、谷は暗い ---
+      let waveNorm = (waveH + 1.5) / 3.0; // 0〜1
+      let baseBri = lerp(briLow, briHigh, waveNorm);
+      // 深さによる減衰
+      baseBri *= lerp(1.3, 0.5, depthRatio);
 
-      let hue = (baseHue + hue1 + hue2 + depthHueShift + climateHueShift + 360) % 360;
-
-      // --- 彩度・明度 ---
-      let briNoise = noise(wx * 0.0008 + 600, wy * 0.001 + 600, t * 0.06);
-      let sat = lerp(satLow, satHigh, briNoise);
-      let bri = lerp(briLow, briHigh, briNoise);
-
-      // 深さによる明度・彩度の変化 (水面は明るく、深海は暗い)
-      bri *= lerp(1.2, 0.6, depthRatio);
-      sat += depthRatio * 12;
-
-      // climateFactor: 熱帯は鮮やか、北極は落ち着いた色
+      // --- 彩度 ---
+      let sat = lerp(satLow, satHigh, 0.5 + waveH * 0.2);
+      sat += depthRatio * 15;
       sat += climateFactor * 8;
-      bri += climateFactor * 5;
 
-      // シェイクで明るく
+      let bri = baseBri + climateFactor * 5;
       bri += shakeIntensity * 30;
 
-      // --- 波頭フォーム効果: ワーピングの山で白く光る ---
-      let foamNoise = noise(gx * 0.003, gy * 0.003, t * 0.15);
-      let vertWarp = warpY; // 上向きのワープ = 波の山
-      if (vertWarp < -60 && foamNoise > 0.5 && depthRatio < 0.6) {
-        let foamStr = (foamNoise - 0.5) * 2 * min(1, (-vertWarp - 60) / 60);
-        foamStr *= (1 - depthRatio * 1.5);
-        sat *= (1 - foamStr * 0.7);
-        bri += foamStr * 25;
-        hue = lerpHue(hue, 190, foamStr * 0.3);
+      // --- 波頭の泡: 波の山 + 浅い場所で白く光る ---
+      if (waveH > 0.6 && depthRatio < 0.7) {
+        let foamStr = (waveH - 0.6) * 2.0 * (1 - depthRatio);
+        let foamN = noise(gx * 0.008 + t * 2, gy * 0.008, t * 0.3);
+        foamStr *= foamN;
+        sat *= (1 - foamStr * 0.8);
+        bri += foamStr * 30;
       }
 
       // --- 水面のきらめき ---
-      if (depthRatio < 0.5 && daylight > 0.1) {
-        let sparkle = noise(gx * 0.01 + t * 3, gy * 0.01 + t * 2, t * 0.5);
-        if (sparkle > 0.82) {
-          let sparkStr = (sparkle - 0.82) * 5.5 * daylight * (1 - depthRatio * 2);
-          sat *= (1 - sparkStr * 0.5);
-          bri += sparkStr * 20;
+      if (depthRatio < 0.45 && daylight > 0.1) {
+        let sparkle = noise(gx * 0.012 + t * 4, gy * 0.012 + t * 3, t * 0.8);
+        if (sparkle > 0.8) {
+          let sparkStr = (sparkle - 0.8) * 5.0 * daylight * (1 - depthRatio * 2.2);
+          sat *= (1 - sparkStr * 0.6);
+          bri += sparkStr * 25;
         }
       }
 
