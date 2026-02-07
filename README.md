@@ -411,8 +411,3 @@ generative-art/
     └── sketch.js           三角形軌道 × 全三角形描画
 ```
 
----
-
-## ライセンス
-
-MIT

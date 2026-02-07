@@ -177,8 +177,17 @@
   </footer>
 
   <script>
-  // ミニプレビュー: 各作品の雰囲気をcanvasで描画
+  // ミニプレビュー: IntersectionObserver で画面内のみアニメーション
   (function() {
+    var visMap = {};
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { visMap[e.target.id] = e.isIntersecting; });
+    }, { threshold: 0.1 });
+    ['cvWaves','cvAurora','cvMeadow','cvClouds','cvSnow','cvNeon','cvNeon2'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { observer.observe(el); visMap[id] = false; }
+    });
+    var frameSkip = 0;
     // --- Waves プレビュー ---
     var cw = document.getElementById('cvWaves');
     var ctxW = cw.getContext('2d');
@@ -187,6 +196,8 @@
     var tW = 0;
 
     function drawWaves() {
+      requestAnimationFrame(drawWaves);
+      if (!visMap['cvWaves']) return;
       ctxW.fillStyle = 'rgba(0,0,15,0.15)';
       ctxW.fillRect(0, 0, W, H);
       for (var layer = 0; layer < 8; layer++) {
@@ -208,7 +219,6 @@
         ctxW.fill();
       }
       tW += 0.02;
-      requestAnimationFrame(drawWaves);
     }
     drawWaves();
 
@@ -246,6 +256,8 @@
     var auroraHues = [240, 270, 310, 200, 160, 120, 280, 350];
 
     function drawAurora() {
+      requestAnimationFrame(drawAurora);
+      if (!visMap['cvAurora']) return;
       for (var r = 0; r < rowsA; r++) {
         for (var c = 0; c < colsA; c++) {
           var gx = c * dotA;
@@ -271,7 +283,6 @@
         }
       }
       tA += 0.008;
-      requestAnimationFrame(drawAurora);
     }
     drawAurora();
 
@@ -288,6 +299,8 @@
     var meadowHues = [128, 162, 110, 172, 120, 155, 105, 148];
 
     function drawMeadow() {
+      requestAnimationFrame(drawMeadow);
+      if (!visMap['cvMeadow']) return;
       for (var r = 0; r < rowsM; r++) {
         for (var c = 0; c < colsM; c++) {
           var gx = c * dotM;
@@ -313,7 +326,6 @@
         }
       }
       tM += 0.008;
-      requestAnimationFrame(drawMeadow);
     }
     drawMeadow();
 
@@ -330,6 +342,8 @@
     var cloudHues = [210, 220, 200, 230, 190, 240, 35, 215];
 
     function drawClouds() {
+      requestAnimationFrame(drawClouds);
+      if (!visMap['cvClouds']) return;
       var clearB = 15;
       for (var r = 0; r < rowsC; r++) {
         for (var c = 0; c < colsC; c++) {
@@ -377,7 +391,6 @@
         }
       }
       tC += 0.008;
-      requestAnimationFrame(drawClouds);
     }
     drawClouds();
 
@@ -402,6 +415,8 @@
     var tS = 0;
 
     function drawSnow() {
+      requestAnimationFrame(drawSnow);
+      if (!visMap['cvSnow']) return;
       ctxS.fillStyle = 'rgba(0,2,10,0.12)';
       ctxS.fillRect(0, 0, SW, SH);
       for (var i = 0; i < snowFlakes.length; i++) {
@@ -421,7 +436,6 @@
         ctxS.fill();
       }
       tS += 0.02;
-      requestAnimationFrame(drawSnow);
     }
     drawSnow();
 
@@ -447,6 +461,8 @@
       nAll[ni].px = nAll[ni].x; nAll[ni].py = nAll[ni].y;
     }
     function drawNeon() {
+      requestAnimationFrame(drawNeon);
+      if (!visMap['cvNeon']) return;
       ctxN.fillStyle = 'rgba(2,0,8,0.1)';
       ctxN.fillRect(0, 0, NW, NH);
       var pulse = 0.75 + Math.sin(tN * 0.5) * 0.25;
@@ -515,7 +531,6 @@
       }
       ctxN.globalCompositeOperation = 'source-over';
       tN += 0.008;
-      requestAnimationFrame(drawNeon);
     }
     drawNeon();
 
@@ -566,6 +581,8 @@
       n2All[n2i].px = n2All[n2i].x; n2All[n2i].py = n2All[n2i].y;
     }
     function drawNeon2() {
+      requestAnimationFrame(drawNeon2);
+      if (!visMap['cvNeon2']) return;
       ctxN2.fillStyle = 'rgba(2,0,8,0.1)';
       ctxN2.fillRect(0, 0, N2W, N2H);
       var pulse2 = 0.75 + Math.sin(tN2 * 0.5) * 0.25;
@@ -651,7 +668,6 @@
       }
       ctxN2.globalCompositeOperation = 'source-over';
       tN2 += 0.008;
-      requestAnimationFrame(drawNeon2);
     }
     drawNeon2();
   })();

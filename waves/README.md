@@ -107,8 +107,3 @@ apple-touch-icon.png - ホーム画面用アイコン (180x180)
 icon.svg             - アイコンの SVG ソース
 ```
 
----
-
-## ライセンス
-
-MIT
