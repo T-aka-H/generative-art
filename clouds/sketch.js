@@ -13,9 +13,6 @@ let windNode, windGain;
 let driftNode, driftGain;
 
 // --- デバイスセンサー ---
-let tiltX = 0;
-let tiltY = 0;
-let hasTilt = false;
 let permissionRequested = false;
 
 // --- タッチ/マウス ---
@@ -141,10 +138,7 @@ function draw() {
 
   // --- 操作入力 ---
   let mx, my;
-  if (hasTilt) {
-    mx = constrain(map(tiltX, -30, 30, 0, 1), 0, 1);
-    my = constrain(map(tiltY, 0, 60, 0, 1), 0, 1);
-  } else if (isTouchDevice) {
+  if (isTouchDevice) {
     mx = lastTouchX;
     my = lastTouchY;
   } else if (mouseX === 0 && mouseY === 0) {
@@ -532,7 +526,7 @@ function touchStarted() {
   if (!soundStarted) initSound();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   isTouchDevice = true;
-  if (!hasTilt) { requestOrientationPermission(); requestMotionPermission(); }
+  if (!hasCompass) { requestOrientationPermission(); requestMotionPermission(); }
 
   if (touches.length === 1 && touches[0].y < height * 0.12) {
     handleTimeChange(); return false;
@@ -611,16 +605,15 @@ function handleTimeChange() {
 // デバイスセンサー
 // ============================================
 function handleOrientation(event) {
-  if (event.gamma !== null && event.beta !== null) { tiltX = event.gamma; tiltY = event.beta; hasTilt = true; }
   if (event.alpha !== null) { compassHeading = event.alpha; hasCompass = true; }
 }
 
 function requestOrientationPermission() {
-  if (hasTilt) return;
+  if (hasCompass) return;
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
     if (permissionRequested) return; permissionRequested = true;
     DeviceOrientationEvent.requestPermission().then(function(r) {
-      if (r === 'granted') { window.addEventListener('deviceorientation', handleOrientation); tiltStatusMsg = 'Tilt enabled'; }
+      if (r === 'granted') { window.addEventListener('deviceorientation', handleOrientation); tiltStatusMsg = 'Compass enabled'; }
       else { tiltStatusMsg = 'Touch to interact'; }
       statusShowTime = millis();
     }).catch(function() { tiltStatusMsg = 'Touch to interact'; statusShowTime = millis(); });
@@ -628,7 +621,7 @@ function requestOrientationPermission() {
     if (!permissionRequested) {
       permissionRequested = true;
       window.addEventListener('deviceorientation', handleOrientation);
-      setTimeout(function() { tiltStatusMsg = hasTilt ? 'Tilt enabled' : 'Touch to interact'; statusShowTime = millis(); }, 1000);
+      setTimeout(function() { tiltStatusMsg = hasCompass ? 'Compass enabled' : 'Touch to interact'; statusShowTime = millis(); }, 1000);
     }
   } else { tiltStatusMsg = 'Touch to interact'; statusShowTime = millis(); }
 }

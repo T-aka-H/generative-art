@@ -100,14 +100,70 @@
       .work-title { font-size: 16px; letter-spacing: 6px; }
       .work-sub { font-size: 10px; }
     }
+    /* Loading overlay — pure CSS, renders before JS */
+    #loadingOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #000;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      transition: opacity 0.8s ease;
+    }
+    #loadingOverlay.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loading-title {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 10px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      font-family: Georgia, 'Times New Roman', serif;
+      animation: loadPulse 2s ease-in-out infinite;
+    }
+    .loading-line {
+      width: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      margin: 24px auto 0;
+      animation: loadExpand 1.8s ease-out forwards;
+    }
+    .loading-dot {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      margin: 16px auto 0;
+      animation: loadDot 1.2s ease-in-out infinite;
+    }
+    @keyframes loadPulse {
+      0%, 100% { opacity: 0.25; }
+      50% { opacity: 0.6; }
+    }
+    @keyframes loadExpand {
+      0% { width: 0; }
+      100% { width: 100px; }
+    }
+    @keyframes loadDot {
+      0%, 100% { opacity: 0.1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.5); }
+    }
   </style>
 </head>
 <body>
+  <div id="loadingOverlay">
+    <div class="loading-title">Gen-Art</div>
+    <div class="loading-line"></div>
+    <div class="loading-dot"></div>
+  </div>
   <header>
     <h1>Gen-Art</h1>
   </header>
   <div class="gallery">
-    <a href="./waves/" class="work">
+    <a href="./waves/index.html" class="work">
       <div class="work-preview">
         <canvas id="cvWaves"></canvas>
       </div>
@@ -116,7 +172,7 @@
         <span class="work-sub">Interactive Ocean</span>
       </div>
     </a>
-    <a href="./aurora/" class="work">
+    <a href="./aurora/index.html" class="work">
       <div class="work-preview">
         <canvas id="cvAurora"></canvas>
       </div>
@@ -125,7 +181,7 @@
         <span class="work-sub">Mosaic of Light</span>
       </div>
     </a>
-    <a href="./meadow/" class="work">
+    <a href="./meadow/index.html" class="work">
       <div class="work-preview">
         <canvas id="cvMeadow"></canvas>
       </div>
@@ -134,7 +190,7 @@
         <span class="work-sub">Breeze and Light</span>
       </div>
     </a>
-    <a href="./clouds/" class="work">
+    <a href="./clouds/index.html" class="work">
       <div class="work-preview">
         <canvas id="cvClouds"></canvas>
       </div>
@@ -143,7 +199,7 @@
         <span class="work-sub">Drifting Forms</span>
       </div>
     </a>
-    <a href="./snow/" class="work">
+    <a href="./snow/index.html" class="work">
       <div class="work-preview">
         <canvas id="cvSnow"></canvas>
       </div>
@@ -152,7 +208,7 @@
         <span class="work-sub">Falling Light</span>
       </div>
     </a>
-    <a href="./neon1/" class="work">
+    <a href="./neon1/index.html" class="work">
       <div class="work-preview">
         <canvas id="cvNeon"></canvas>
       </div>
@@ -161,7 +217,7 @@
         <span class="work-sub">Skating Light</span>
       </div>
     </a>
-    <a href="./neon2/" class="work">
+    <a href="./neon2/index.html" class="work">
       <div class="work-preview">
         <canvas id="cvNeon2"></canvas>
       </div>
@@ -177,11 +233,28 @@
   </footer>
 
   <script>
+  // Loading screen dismissal
+  var _loadingDone = false;
+  function dismissLoading() {
+    if (_loadingDone) return;
+    _loadingDone = true;
+    var ov = document.getElementById('loadingOverlay');
+    if (ov) {
+      ov.classList.add('fade-out');
+      setTimeout(function() { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 900);
+    }
+  }
+  // Fallback: dismiss after 1.2s even if observer hasn't fired
+  setTimeout(dismissLoading, 1200);
+
+  // Defer heavy canvas init to let loading screen paint first
+  setTimeout(function() {
   // ミニプレビュー: IntersectionObserver で画面内のみアニメーション
   (function() {
     var visMap = {};
     var observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(e) { visMap[e.target.id] = e.isIntersecting; });
+      dismissLoading();
     }, { threshold: 0.1 });
     ['cvWaves','cvAurora','cvMeadow','cvClouds','cvSnow','cvNeon','cvNeon2'].forEach(function(id) {
       var el = document.getElementById(id);
@@ -671,6 +744,7 @@
     }
     drawNeon2();
   })();
+  }, 10); // end setTimeout — defer canvas init to let loading screen paint
   </script>
 </body>
 </html>
