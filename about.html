@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>About — Gen-Art</title>
+  <link rel="icon" href="favicon.ico">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html {
+      background: #000;
+      color: rgba(255,255,255,0.72);
+      font-family: Georgia, 'Times New Roman', serif;
+      scroll-behavior: smooth;
+    }
+    body {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 80px 28px 100px;
+      line-height: 1.85;
+      font-size: 15px;
+    }
+    a { color: rgba(255,255,255,0.45); transition: color 0.3s; }
+    a:hover { color: rgba(255,255,255,0.8); }
+    .back {
+      display: inline-block;
+      text-decoration: none;
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 60px;
+    }
+    h1 {
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 48px;
+    }
+    .lang-note {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.25);
+      margin-bottom: 56px;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      margin: 64px 0 20px;
+    }
+    h2:first-of-type { margin-top: 0; }
+    h3 {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.4);
+      margin: 36px 0 12px;
+    }
+    p { margin-bottom: 16px; }
+    .sep {
+      width: 40px;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 56px 0;
+    }
+    .lang-divider {
+      text-align: center;
+      color: rgba(255,255,255,0.2);
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin: 80px 0 64px;
+      position: relative;
+    }
+    .lang-divider::before,
+    .lang-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 60px;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .lang-divider::before { right: calc(50% + 60px); }
+    .lang-divider::after { left: calc(50% + 60px); }
+    .controls {
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.5);
+    }
+    .controls dt {
+      color: rgba(255,255,255,0.65);
+      margin-top: 8px;
+    }
+    .controls dd { margin-left: 16px; margin-bottom: 4px; }
+    @media (max-width: 600px) {
+      body { padding: 50px 20px 80px; font-size: 14px; }
+      h2 { font-size: 16px; margin: 48px 0 16px; }
+    }
+  </style>
+</head>
+<body>
+  <a href="./" class="back">&larr; Gallery</a>
+  <h1>About the Works</h1>
+  <p class="lang-note">Japanese translation follows below.</p>
+
+  <!-- ==================== ENGLISH ==================== -->
+
+  <h2>Concept</h2>
+  <p>Every piece in this collection is generated entirely from mathematical formulas and algorithms. No image assets, no recorded audio, no pre-rendered frames. What you see and hear is born in real-time inside your browser, shaped by the clock on your wall, the tilt of your hand, and the touch of your fingertip.</p>
+  <p>These are not animations to be watched. They are living systems to be inhabited. The same scene never appears twice.</p>
+
+  <div class="sep"></div>
+
+  <h2>Waves</h2>
+  <h3>Interactive Ocean</h3>
+  <p>120 layers of waves are formed by superimposing sine waves and Perlin noise. Sine waves provide the regular rhythm of the sea; Perlin noise, invented by Ken Perlin in 1983 for the film <em>Tron</em>, adds the organic irregularity of wind and current. Catmull-Rom splines smooth each wave into a continuous curve, while foam and spray appear where the surface curvature exceeds a threshold.</p>
+  <p>The ocean reflects the actual time of day: predawn purple, midday white glare, amber dusk, deep navy night. Your latitude shifts the palette between tropical turquoise and arctic indigo. Your compass heading steers the current.</p>
+
+  <div class="sep"></div>
+
+  <h2>Aurora</h2>
+  <h3>Mosaic of Light</h3>
+  <p>The visual core is domain warping: the input coordinates of a Perlin noise field are themselves displaced by another noise field. This recursive distortion causes color boundaries to fold, ripple, and billow into curtain-like shapes that evoke the aurora borealis.</p>
+  <p>Eight base colors are interpolated smoothly, then modulated by three layers of hue variation at different scales. From eight hues, an seemingly infinite gradient emerges. 600 stars blink overhead, tinted by the current time-of-day theme.</p>
+
+  <div class="sep"></div>
+
+  <h2>Meadow</h2>
+  <h3>Breeze and Light</h3>
+  <p>Domain warping meets depth. The y-coordinate controls brightness and saturation, creating the illusion of distance: vivid greens in the foreground fade to muted tones in the back. Three sine-wave wind layers sweep across the field at different frequencies, bending the entire noise pattern as if a gust were running through the grass.</p>
+  <p>Dappled light patches drift through the meadow, their positions and sizes governed by Perlin noise, imitating sunlight filtering through leaves.</p>
+
+  <div class="sep"></div>
+
+  <h2>Clouds</h2>
+  <h3>Drifting Forms</h3>
+  <p>Three scales of Perlin noise are summed into a density field. A smoothstep function carves soft edges: below the threshold is clear sky; above it, cloud. The cloud core is desaturated and brightened to simulate the white interior of a cumulus mass.</p>
+  <p>Domain warping with a large amplitude (&plusmn;300 pixels) slowly reshapes the formations, producing clouds that drift and morph as if seen from a mountaintop. A pinch gesture raises or lowers the density threshold, letting you summon or disperse the clouds.</p>
+
+  <div class="sep"></div>
+
+  <h2>Snow</h2>
+  <h3>Falling Light</h3>
+  <p>A three-layer particle system: far, mid, and near. Each layer has different sizes, speeds, and opacities, creating a bokeh-like depth of field. Particles are rendered as pre-generated radial-gradient textures, producing the soft, glowing circles you see through an out-of-focus lens.</p>
+  <p>Horizontal drift follows a sinusoidal path; size pulses with Perlin noise. A long press melts nearby flakes: they shrink, shift toward warm orange hues, and a gentle aura glows around your fingertip. The contrast between frozen light and melting warmth is tactile.</p>
+
+  <div class="sep"></div>
+
+  <h2>Neon1</h2>
+  <h3>Skating Light</h3>
+  <p>22 luminous points glide across a dark field, their paths governed by curvature-based physics. Perlin noise modulates curvature over time, producing the flowing arcs of figure skating. When the noise value exceeds a threshold, a sudden spin occurs.</p>
+  <p>Trails persist for 20 seconds using a double-buffered canvas with periodic swap. A fade is applied every 29 frames with alpha 0.02 (5/255 in 8-bit), carefully tuned to overcome the quantization floor where alpha=1 pixels would otherwise linger forever. Additive blending (<em>lighter</em> composite) makes overlapping trails glow white-hot.</p>
+  <p>When a red and blue skater collide, there is a 50% chance a golden child is born. After 10 collisions, the child matures into red or blue.</p>
+
+  <div class="sep"></div>
+
+  <h2>Neon2</h2>
+  <h3>Triangle Light</h3>
+  <p>The same physics engine as Neon1, but every visual element is rendered exclusively with triangles, and the trajectories themselves are triangular: straight segments of 50&ndash;150 pixels punctuated by sharp ~120&deg; turns (&plusmn;20&deg; noise variation). During a turn, speed drops to 50%, accentuating the angular sharpness.</p>
+  <p>Equilateral triangles are defined by three parameters: center, circumradius, and rotation angle. Wake triangles form the trail, spinning triangles form the sparks, and expanding rotating triangles form the ripples.</p>
+  <p>On every collision, both skaters change to a new random neon color generated from HSV space (hue 0&ndash;360&deg;, saturation 80&ndash;100%, value 100%). The result is a kaleidoscope of unpredictable color that evolves with every encounter.</p>
+  <p>Trails persist for approximately 60 seconds, allowing the thin triangular wake to accumulate into intricate geometric tapestries.</p>
+
+  <div class="sep"></div>
+
+  <h2>Controls</h2>
+  <h3>All Works</h3>
+  <dl class="controls">
+    <dt>Tap / Click</dt>
+    <dd>Create a ripple; advance the color theme by 2 hours</dd>
+    <dt>Double-tap</dt>
+    <dd>Return to real-time clock</dd>
+    <dt>Swipe / Drag</dt>
+    <dd>Send a gust of wind through the scene</dd>
+    <dt>Long press</dt>
+    <dd>Unique per work: push water, trample grass, create vortex, melt snow</dd>
+    <dt>Pinch</dt>
+    <dd>Scale or adjust density parameters</dd>
+    <dt>Shake</dt>
+    <dd>Intensify the scene</dd>
+    <dt>Tilt</dt>
+    <dd>Steer the flow direction</dd>
+    <dt>Desktop nav</dt>
+    <dd>Left-click + right-click simultaneously</dd>
+    <dt>Mobile nav</dt>
+    <dd>Swipe from the left edge of the screen</dd>
+  </dl>
+
+  <!-- ==================== JAPANESE ==================== -->
+
+  <div class="lang-divider">日本語</div>
+
+  <h2>コンセプト</h2>
+  <p>このコレクションのすべての作品は、数式とアルゴリズムだけで生成されています。画像素材なし、録音された音なし、事前レンダリングなし。あなたが見聞きするものは、ブラウザの中でリアルタイムに生まれ、時計の時刻、手の傾き、指先のタッチによって形を変えます。</p>
+  <p>これらは「観る」アニメーションではありません。「その中に在る」生きたシステムです。同じ風景は二度と現れません。</p>
+
+  <div class="sep"></div>
+
+  <h2>Waves</h2>
+  <h3>インタラクティブ・オーシャン</h3>
+  <p>120 層の波が sin 波と Perlin ノイズの重ね合わせで形成されています。sin 波は海の規則的なリズムを、Perlin ノイズ（1983 年にケン・パーリンが映画『トロン』のために発明）は風や潮流による有機的な不規則さを担います。Catmull-Rom スプラインで各波を滑らかな曲線に補間し、水面の曲率が閾値を超えた地点に泡と飛沫が現れます。</p>
+  <p>海は実際の時刻を映し出します — 夜明け前の紫、昼の白い光、琥珀の夕暮れ、深い紺の夜。緯度が熱帯のターコイズから北極のインディゴへと色調を変え、コンパスの向きが潮の流れを決めます。</p>
+
+  <div class="sep"></div>
+
+  <h2>Aurora</h2>
+  <h3>揺らぐモザイク</h3>
+  <p>視覚的な核心はドメインワーピングです。Perlin ノイズの入力座標を別のノイズで歪ませる再帰的な手法により、色の境界が折り重なり、うねり、カーテンのように波打ちます。</p>
+  <p>8 色のベースパレットを滑らかに補間し、さらに 3 層の色相ゆらぎを重ねることで、8 色からは想像できないほど豊かなグラデーションが現れます。600 個の星が時刻テーマの色に染まりながら瞬きます。</p>
+
+  <div class="sep"></div>
+
+  <h2>Meadow</h2>
+  <h3>風と光の草原</h3>
+  <p>ドメインワーピングに深度を加えた作品です。y 座標で明度と彩度を変化させ、手前ほど鮮やかに、奥ほど沈んだ色調にすることで遠近感を生み出しています。3 層の風波が異なる周波数で草原を横断し、風が吹くとパターン全体がうねります。</p>
+  <p>木漏れ日のような光斑が Perlin ノイズに導かれて草原を漂い、差し込む光を表現しています。</p>
+
+  <div class="sep"></div>
+
+  <h2>Clouds</h2>
+  <h3>漂う雲</h3>
+  <p>3 層の Perlin ノイズで密度場を構築し、スムースステップ関数で雲のエッジを決定します。閾値以下は晴天、以上は雲。密度が高い領域は彩度を下げ明度を上げ、積雲の白い芯を表現しています。</p>
+  <p>大振幅のドメインワーピング（±300 ピクセル）で雲が大きく変形しながら漂います。ピンチ操作で密度の閾値を変え、雲を増やしたり減らしたりできます。</p>
+
+  <div class="sep"></div>
+
+  <h2>Snow</h2>
+  <h3>降る光</h3>
+  <p>遠景・中景・近景の 3 層パーティクルシステム。各層でサイズ・速度・透明度を変え、被写界深度のような空間感を作ります。放射状のアルファグラデーションで事前生成したボケテクスチャにより、ピントの合っていないレンズ越しに見た雪のような柔らかな光の粒が生まれます。</p>
+  <p>長押しすると雪が溶け、色相が暖色にシフトし、指先の周りに暖かいオーラが灯ります。凍てつく光と溶ける温もりの対比が、触覚的な体験を生み出しています。</p>
+
+  <div class="sep"></div>
+
+  <h2>Neon1</h2>
+  <h3>スケーティング・ライト</h3>
+  <p>22 体の光点が曲率ベースの物理で暗い画面を滑走します。Perlin ノイズが曲率を時間変化させ、フィギュアスケートのような流れるアークを描きます。ノイズ値が閾値を超えると急旋回が発生します。</p>
+  <p>残像はダブルバッファ方式で 20 秒間持続します。8 ビットキャンバスの量子化誤差（alpha=1 が永遠に残る問題）を回避するため、フェードを 29 フレームごとに alpha=0.02（8 ビットで 5/255）で適用しています。加算合成により、軌跡が重なる場所が白く輝きます。</p>
+  <p>赤と青のスケーターが衝突すると 50% の確率で金色の子が誕生し、10 回衝突すると赤か青に成長します。</p>
+
+  <div class="sep"></div>
+
+  <h2>Neon2</h2>
+  <h3>トライアングル・ライト</h3>
+  <p>Neon1 と同じ物理エンジンをベースに、すべての描画要素を三角形のみで構成し、軌道そのものも三角形的にした作品です。50〜150 ピクセルの直進セグメントと約 120°の急旋回（±20° の揺らぎ）を繰り返します。旋回中はスピードが 50% に落ち、角度の鋭さが強調されます。</p>
+  <p>正三角形は中心座標・外接円半径・回転角の 3 パラメータで定義されます。ウェイク三角形が軌跡を、回転する三角形がスパークを、拡大回転する三角形が波紋を描きます。</p>
+  <p>衝突のたびに両スケーターが HSV 色空間からランダムなネオンカラー（色相 0°〜360°、彩度 80〜100%、明度 100%）に変化します。約 60 秒持続する残像が幾何学的なタペストリーを織り上げます。</p>
+
+  <div class="sep"></div>
+
+  <h2>操作方法</h2>
+  <h3>全作品共通</h3>
+  <dl class="controls">
+    <dt>タップ / クリック</dt>
+    <dd>波紋を生成、カラーテーマを 2 時間進める</dd>
+    <dt>ダブルタップ</dt>
+    <dd>実時刻に戻す</dd>
+    <dt>スワイプ / ドラッグ</dt>
+    <dd>突風を送る</dd>
+    <dt>長押し</dt>
+    <dd>作品ごとに異なる: 水面を押す、草を踏む、渦巻き、雪を溶かす</dd>
+    <dt>ピンチ</dt>
+    <dd>スケールや密度パラメータを調整</dd>
+    <dt>シェイク</dt>
+    <dd>シーンを激化させる</dd>
+    <dt>傾き</dt>
+    <dd>流れの方向を制御</dd>
+    <dt>デスクトップ ナビ</dt>
+    <dd>左クリック＋右クリック同時押し</dd>
+    <dt>モバイル ナビ</dt>
+    <dd>画面の左端からスワイプ</dd>
+  </dl>
+</body>
+</html>
