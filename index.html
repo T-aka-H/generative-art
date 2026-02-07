@@ -125,6 +125,51 @@
         <span class="work-sub">Mosaic of Light</span>
       </div>
     </a>
+    <a href="./meadow/" class="work">
+      <div class="work-preview">
+        <canvas id="cvMeadow"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Meadow</span>
+        <span class="work-sub">Breeze and Light</span>
+      </div>
+    </a>
+    <a href="./clouds/" class="work">
+      <div class="work-preview">
+        <canvas id="cvClouds"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Clouds</span>
+        <span class="work-sub">Drifting Forms</span>
+      </div>
+    </a>
+    <a href="./snow/" class="work">
+      <div class="work-preview">
+        <canvas id="cvSnow"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Snow</span>
+        <span class="work-sub">Falling Light</span>
+      </div>
+    </a>
+    <a href="./neon1/" class="work">
+      <div class="work-preview">
+        <canvas id="cvNeon"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Neon1</span>
+        <span class="work-sub">Skating Light</span>
+      </div>
+    </a>
+    <a href="./neon2/" class="work">
+      <div class="work-preview">
+        <canvas id="cvNeon2"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Neon2</span>
+        <span class="work-sub">Triangle Light</span>
+      </div>
+    </a>
   </div>
   <footer>tap a work to enter</footer>
 
@@ -226,6 +271,355 @@
       requestAnimationFrame(drawAurora);
     }
     drawAurora();
+
+    // --- Meadow プレビュー（ピクセルバッファ方式）---
+    var cm = document.getElementById('cvMeadow');
+    var ctxM = cm.getContext('2d');
+    var MW = cm.width = 400;
+    var MH = cm.height = 225;
+    var tM = 0;
+    var dotM = 4;
+    var colsM = Math.ceil(MW / dotM);
+    var rowsM = Math.ceil(MH / dotM);
+
+    var meadowHues = [128, 162, 110, 172, 120, 155, 105, 148];
+
+    function drawMeadow() {
+      for (var r = 0; r < rowsM; r++) {
+        for (var c = 0; c < colsM; c++) {
+          var gx = c * dotM;
+          var gy = r * dotM;
+          // ドメインワーピング
+          var warpX = vnoise3(gx * 0.006, gy * 0.008, tM * 0.15) * 70 - 35;
+          var warpY = vnoise3(gx * 0.006 + 5, gy * 0.008 + 5, tM * 0.15) * 70 - 35;
+          var wx = gx + warpX;
+          var wy = gy + warpY;
+          // パレットから色選択
+          var ciRaw = vnoise3(wx * 0.005, wy * 0.006, tM * 0.08) * 8;
+          var ci0 = Math.floor(ciRaw) % 8;
+          var ci1 = (ci0 + 1) % 8;
+          var frac = ciRaw - Math.floor(ciRaw);
+          var h = meadowHues[ci0] + (meadowHues[ci1] - meadowHues[ci0]) * frac;
+          var hShift = vnoise3(wx * 0.004 + 10, wy * 0.01 + 10, tM * 0.1) * 30 - 15;
+          h = ((h + hShift) % 360 + 360) % 360;
+          var briN = vnoise3(wx * 0.005 + 20, wy * 0.01 + 20, tM * 0.06);
+          var s = 45 + briN * 25;
+          var l = 12 + briN * 28;
+          ctxM.fillStyle = 'hsl(' + h + ',' + s + '%,' + l + '%)';
+          ctxM.fillRect(gx, gy, dotM, dotM);
+        }
+      }
+      tM += 0.008;
+      requestAnimationFrame(drawMeadow);
+    }
+    drawMeadow();
+
+    // --- Clouds プレビュー ---
+    var cc = document.getElementById('cvClouds');
+    var ctxC = cc.getContext('2d');
+    var CW = cc.width = 400;
+    var CH = cc.height = 225;
+    var tC = 0;
+    var dotC = 4;
+    var colsC = Math.ceil(CW / dotC);
+    var rowsC = Math.ceil(CH / dotC);
+
+    var cloudHues = [210, 220, 200, 230, 190, 240, 35, 215];
+
+    function drawClouds() {
+      var clearB = 15;
+      for (var r = 0; r < rowsC; r++) {
+        for (var c = 0; c < colsC; c++) {
+          var gx = c * dotC;
+          var gy = r * dotC;
+          // ドメインワーピング
+          var warpX = vnoise3(gx * 0.006, gy * 0.006, tC * 0.3) * 80 - 40;
+          var warpY = vnoise3(gx * 0.006 + 5, gy * 0.006 + 5, tC * 0.3) * 80 - 40;
+          var wx = gx + warpX;
+          var wy = gy + warpY;
+
+          // 密度フィールド（3層）
+          var d1 = vnoise3(wx * 0.004, wy * 0.004, tC * 0.2);
+          var d2 = vnoise3(wx * 0.012, wy * 0.012, tC * 0.4) * 0.5;
+          var d3 = vnoise3(wx * 0.03, wy * 0.03, tC * 0.6) * 0.25;
+          var raw = d1 + d2 + d3;
+
+          // smoothstep
+          var edge0 = 0.35, edge1 = 0.95;
+          var st = (raw - edge0) / (edge1 - edge0);
+          st = st < 0 ? 0 : (st > 1 ? 1 : st);
+          var density = st * st * (3 - 2 * st);
+
+          // パレットから色選択
+          var ciRaw = vnoise3(wx * 0.005, wy * 0.005, tC * 0.5) * 8;
+          var ci0 = Math.floor(ciRaw) % 8;
+          var ci1 = (ci0 + 1) % 8;
+          var frac = ciRaw - Math.floor(ciRaw);
+          var h = cloudHues[ci0] + (cloudHues[ci1] - cloudHues[ci0]) * frac;
+          var hShift = vnoise3(wx * 0.004 + 10, wy * 0.01 + 10, tC * 0.3) * 40 - 20;
+          h = ((h + hShift) % 360 + 360) % 360;
+
+          var s = 12 + vnoise3(wx * 0.005 + 20, wy * 0.01 + 20, tC * 0.4) * 18;
+          var l = clearB + density * (55 - clearB);
+
+          // 雲の芯は白っぽく
+          if (density > 0.7) {
+            var core = (density - 0.7) / 0.3;
+            s *= (1 - core * 0.5);
+            l += core * 10;
+          }
+
+          ctxC.fillStyle = 'hsl(' + h + ',' + s + '%,' + l + '%)';
+          ctxC.fillRect(gx, gy, dotC, dotC);
+        }
+      }
+      tC += 0.008;
+      requestAnimationFrame(drawClouds);
+    }
+    drawClouds();
+
+    // --- Snow プレビュー（パーティクルベース）---
+    var cs = document.getElementById('cvSnow');
+    var ctxS = cs.getContext('2d');
+    var SW = cs.width = 400;
+    var SH = cs.height = 225;
+    var snowFlakes = [];
+    for (var i = 0; i < 30; i++) {
+      snowFlakes.push({
+        x: Math.random() * SW,
+        y: Math.random() * SH,
+        size: 3 + Math.random() * 20,
+        speed: 0.15 + Math.random() * 0.5,
+        alpha: 0.05 + Math.random() * 0.2,
+        drift: 0.3 + Math.random() * 0.8,
+        phase: Math.random() * Math.PI * 2,
+        driftSpd: 0.3 + Math.random() * 0.5
+      });
+    }
+    var tS = 0;
+
+    function drawSnow() {
+      ctxS.fillStyle = 'rgba(0,2,10,0.12)';
+      ctxS.fillRect(0, 0, SW, SH);
+      for (var i = 0; i < snowFlakes.length; i++) {
+        var f = snowFlakes[i];
+        f.y += f.speed;
+        f.x += Math.sin(tS * f.driftSpd + f.phase) * f.drift * 0.3;
+        if (f.y > SH + f.size) { f.y = -f.size; f.x = Math.random() * SW; }
+        if (f.x > SW + f.size) f.x = -f.size;
+        if (f.x < -f.size) f.x = SW + f.size;
+        var grad = ctxS.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.size);
+        grad.addColorStop(0, 'rgba(200,210,255,' + f.alpha + ')');
+        grad.addColorStop(0.5, 'rgba(200,210,255,' + (f.alpha * 0.3) + ')');
+        grad.addColorStop(1, 'rgba(200,210,255,0)');
+        ctxS.fillStyle = grad;
+        ctxS.beginPath();
+        ctxS.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+        ctxS.fill();
+      }
+      tS += 0.02;
+      requestAnimationFrame(drawSnow);
+    }
+    drawSnow();
+
+    // --- Neon プレビュー（スケーター + 衝突で子が生まれる）---
+    var cn = document.getElementById('cvNeon');
+    var ctxN = cn.getContext('2d');
+    var NW = cn.width = 400;
+    var NH = cn.height = 225;
+    var tN = 0;
+    function pnoise(a, b) { return (Math.sin(a * 12.9898 + b * 78.233) * 43758.5453) % 1; }
+    function snoise(seed, t) {
+      var i = Math.floor(t), f = t - i;
+      f = f * f * (3 - 2 * f);
+      return pnoise(seed, i) * (1 - f) + pnoise(seed, i + 1) * f;
+    }
+    var nAll = [];
+    var nPriCol = '255,20,100', nSecCol = '0,180,255', nChiCol = '255,245,200';
+    var nCollCd = {};
+    for (var ni = 0; ni < 6; ni++) {
+      nAll.push({ x: NW * (0.15 + (ni % 3) * 0.3), y: NH * (0.2 + (ni % 2) * 0.6),
+        px: 0, py: 0, angle: ni * 1.05, curv: 0, spd: 0.8 + ni * 0.08,
+        seed: 42 + ni * 137, type: ni % 2 === 0 ? 'pri' : 'sec', cc: 0 });
+      nAll[ni].px = nAll[ni].x; nAll[ni].py = nAll[ni].y;
+    }
+    function drawNeon() {
+      ctxN.fillStyle = 'rgba(2,0,8,0.1)';
+      ctxN.fillRect(0, 0, NW, NH);
+      var pulse = 0.75 + Math.sin(tN * 0.5) * 0.25;
+      ctxN.globalCompositeOperation = 'lighter';
+      for (var si = 0; si < nAll.length; si++) {
+        var s = nAll[si];
+        s.px = s.x; s.py = s.y;
+        var n1 = snoise(s.seed, tN * 0.06) - 0.5;
+        var n2 = snoise(s.seed + 100, tN * 0.2) - 0.5;
+        var tc = n1 * 0.06 + n2 * 0.025;
+        var ln = snoise(s.seed + 200, tN * 0.1);
+        if (ln > 0.75) tc += (ln - 0.75) * 4 * 0.12 * (n1 > 0 ? 1 : -1);
+        s.curv += (tc - s.curv) * 0.03;
+        s.angle += s.curv;
+        s.x += Math.cos(s.angle) * s.spd;
+        s.y += Math.sin(s.angle) * s.spd;
+        var ex = Math.abs(s.x - NW / 2) / (NW / 2), ey = Math.abs(s.y - NH / 2) / (NH / 2);
+        var edge = Math.max(ex, ey);
+        if (edge > 0.8) {
+          var da = Math.atan2(NH / 2 - s.y, NW / 2 - s.x) - s.angle;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          s.angle += da * (edge - 0.8) * 0.4;
+        }
+        var col = s.type === 'chi' ? nChiCol : (s.type === 'pri' ? nPriCol : nSecCol);
+        var layers = [{ w: 8, a: 0.03 }, { w: 4, a: 0.08 }, { w: 1.5, a: 0.18 }, { w: 0.6, a: 0.3 }];
+        ctxN.lineCap = 'round';
+        for (var li = 0; li < layers.length; li++) {
+          ctxN.strokeStyle = 'rgba(' + col + ',' + layers[li].a + ')';
+          ctxN.lineWidth = layers[li].w;
+          ctxN.beginPath(); ctxN.moveTo(s.px, s.py); ctxN.lineTo(s.x, s.y); ctxN.stroke();
+        }
+        var gs = [{ r: 8, a: 0.06 * pulse }, { r: 4, a: 0.15 * pulse }, { r: 1.8, a: 0.4 * pulse }];
+        for (var gi = 0; gi < gs.length; gi++) {
+          ctxN.fillStyle = 'rgba(' + col + ',' + gs[gi].a + ')';
+          ctxN.beginPath(); ctxN.arc(s.x, s.y, gs[gi].r, 0, Math.PI * 2); ctxN.fill();
+        }
+        ctxN.fillStyle = 'rgba(255,240,255,' + (0.7 * pulse) + ')';
+        ctxN.beginPath(); ctxN.arc(s.x, s.y, 0.8, 0, Math.PI * 2); ctxN.fill();
+      }
+      // Collision detection
+      var nFrame = Math.floor(tN * 125);
+      for (var i = 0; i < nAll.length; i++) {
+        for (var j = i + 1; j < nAll.length; j++) {
+          var dx = nAll[j].x - nAll[i].x, dy = nAll[j].y - nAll[i].y;
+          var d = Math.sqrt(dx * dx + dy * dy);
+          var ck = i * 100 + j;
+          if (d < 15 && (!nCollCd[ck] || nFrame - nCollCd[ck] > 100)) {
+            nCollCd[ck] = nFrame;
+            nAll[i].angle = Math.atan2(-dy, -dx) + (Math.random() - 0.5) * 0.8;
+            nAll[j].angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.8;
+            // Primary + Secondary → spawn child
+            var ts = [nAll[i].type, nAll[j].type].sort();
+            if (ts[0] === 'pri' && ts[1] === 'sec' && nAll.length < 14) {
+              nAll.push({ x: (nAll[i].x + nAll[j].x) / 2, y: (nAll[i].y + nAll[j].y) / 2,
+                px: 0, py: 0, angle: Math.random() * Math.PI * 2, curv: 0,
+                spd: 0.7 + Math.random() * 0.3, seed: 1000 + nAll.length * 137,
+                type: 'chi', cc: 0 });
+              var last = nAll[nAll.length - 1]; last.px = last.x; last.py = last.y;
+            }
+            // Child evolution
+            if (nAll[i].type === 'chi') { nAll[i].cc++; if (nAll[i].cc >= 10) { nAll[i].type = Math.random() < 0.5 ? 'pri' : 'sec'; nAll[i].cc = 0; } }
+            if (nAll[j].type === 'chi') { nAll[j].cc++; if (nAll[j].cc >= 10) { nAll[j].type = Math.random() < 0.5 ? 'pri' : 'sec'; nAll[j].cc = 0; } }
+          }
+        }
+      }
+      ctxN.globalCompositeOperation = 'source-over';
+      tN += 0.008;
+      requestAnimationFrame(drawNeon);
+    }
+    drawNeon();
+
+    // --- Neon2 プレビュー（三角形ジオメトリ）---
+    var cn2 = document.getElementById('cvNeon2');
+    var ctxN2 = cn2.getContext('2d');
+    var N2W = cn2.width = 400;
+    var N2H = cn2.height = 225;
+    var tN2 = 0;
+    var TTP = 2.0943951; // 2*PI/3
+    function triP(cx, cy, r, ang) {
+      ctxN2.beginPath();
+      ctxN2.moveTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
+      ctxN2.lineTo(cx + r * Math.cos(ang + TTP), cy + r * Math.sin(ang + TTP));
+      ctxN2.lineTo(cx + r * Math.cos(ang - TTP), cy + r * Math.sin(ang - TTP));
+      ctxN2.closePath();
+    }
+    function wakeP(tx, ty, hx, hy, hw, ang) {
+      var pa = ang + Math.PI / 2;
+      var cp2 = Math.cos(pa), sp2 = Math.sin(pa);
+      ctxN2.beginPath();
+      ctxN2.moveTo(tx, ty);
+      ctxN2.lineTo(hx + hw * cp2, hy + hw * sp2);
+      ctxN2.lineTo(hx - hw * cp2, hy - hw * sp2);
+      ctxN2.closePath();
+    }
+    var n2All = [];
+    var n2CollCd = {};
+    for (var n2i = 0; n2i < 6; n2i++) {
+      n2All.push({ x: N2W * (0.15 + (n2i % 3) * 0.3), y: N2H * (0.2 + (n2i % 2) * 0.6),
+        px: 0, py: 0, angle: n2i * 1.05, curv: 0, spd: 0.8 + n2i * 0.08,
+        seed: 42 + n2i * 137, type: n2i % 2 === 0 ? 'pri' : 'sec', cc: 0 });
+      n2All[n2i].px = n2All[n2i].x; n2All[n2i].py = n2All[n2i].y;
+    }
+    function drawNeon2() {
+      ctxN2.fillStyle = 'rgba(2,0,8,0.1)';
+      ctxN2.fillRect(0, 0, N2W, N2H);
+      var pulse2 = 0.75 + Math.sin(tN2 * 0.5) * 0.25;
+      ctxN2.globalCompositeOperation = 'lighter';
+      for (var si = 0; si < n2All.length; si++) {
+        var s = n2All[si];
+        s.px = s.x; s.py = s.y;
+        var n1 = snoise(s.seed, tN2 * 0.06) - 0.5;
+        var n2 = snoise(s.seed + 100, tN2 * 0.2) - 0.5;
+        var tc = n1 * 0.06 + n2 * 0.025;
+        var ln = snoise(s.seed + 200, tN2 * 0.1);
+        if (ln > 0.75) tc += (ln - 0.75) * 4 * 0.12 * (n1 > 0 ? 1 : -1);
+        s.curv += (tc - s.curv) * 0.03;
+        s.angle += s.curv;
+        s.x += Math.cos(s.angle) * s.spd;
+        s.y += Math.sin(s.angle) * s.spd;
+        var ex = Math.abs(s.x - N2W / 2) / (N2W / 2), ey = Math.abs(s.y - N2H / 2) / (N2H / 2);
+        var edge = Math.max(ex, ey);
+        if (edge > 0.8) {
+          var da = Math.atan2(N2H / 2 - s.y, N2W / 2 - s.x) - s.angle;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          s.angle += da * (edge - 0.8) * 0.4;
+        }
+        var col = s.type === 'chi' ? nChiCol : (s.type === 'pri' ? nPriCol : nSecCol);
+        // Wake triangle trail
+        var tls = [{ hw: 4, a: 0.03 }, { hw: 2, a: 0.08 }, { hw: 0.8, a: 0.18 }];
+        for (var li = 0; li < tls.length; li++) {
+          ctxN2.fillStyle = 'rgba(' + col + ',' + tls[li].a + ')';
+          wakeP(s.px, s.py, s.x, s.y, tls[li].hw, s.angle);
+          ctxN2.fill();
+        }
+        // Triangle head glow
+        var gs = [{ r: 8, a: 0.06 * pulse2 }, { r: 4, a: 0.15 * pulse2 }, { r: 1.8, a: 0.4 * pulse2 }];
+        for (var gi = 0; gi < gs.length; gi++) {
+          ctxN2.fillStyle = 'rgba(' + col + ',' + gs[gi].a + ')';
+          triP(s.x, s.y, gs[gi].r, s.angle);
+          ctxN2.fill();
+        }
+        ctxN2.fillStyle = 'rgba(255,240,255,' + (0.7 * pulse2) + ')';
+        triP(s.x, s.y, 1.0, s.angle);
+        ctxN2.fill();
+      }
+      // Collision
+      var nFrame2 = Math.floor(tN2 * 125);
+      for (var i = 0; i < n2All.length; i++) {
+        for (var j = i + 1; j < n2All.length; j++) {
+          var dx = n2All[j].x - n2All[i].x, dy = n2All[j].y - n2All[i].y;
+          var d = Math.sqrt(dx * dx + dy * dy);
+          var ck = i * 100 + j;
+          if (d < 15 && (!n2CollCd[ck] || nFrame2 - n2CollCd[ck] > 100)) {
+            n2CollCd[ck] = nFrame2;
+            n2All[i].angle = Math.atan2(-dy, -dx) + (Math.random() - 0.5) * 0.8;
+            n2All[j].angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.8;
+            var ts = [n2All[i].type, n2All[j].type].sort();
+            if (ts[0] === 'pri' && ts[1] === 'sec' && n2All.length < 14) {
+              n2All.push({ x: (n2All[i].x + n2All[j].x) / 2, y: (n2All[i].y + n2All[j].y) / 2,
+                px: 0, py: 0, angle: Math.random() * Math.PI * 2, curv: 0,
+                spd: 0.7 + Math.random() * 0.3, seed: 2000 + n2All.length * 137,
+                type: 'chi', cc: 0 });
+              var last = n2All[n2All.length - 1]; last.px = last.x; last.py = last.y;
+            }
+            if (n2All[i].type === 'chi') { n2All[i].cc++; if (n2All[i].cc >= 10) { n2All[i].type = Math.random() < 0.5 ? 'pri' : 'sec'; n2All[i].cc = 0; } }
+            if (n2All[j].type === 'chi') { n2All[j].cc++; if (n2All[j].cc >= 10) { n2All[j].type = Math.random() < 0.5 ? 'pri' : 'sec'; n2All[j].cc = 0; } }
+          }
+        }
+      }
+      ctxN2.globalCompositeOperation = 'source-over';
+      tN2 += 0.008;
+      requestAnimationFrame(drawNeon2);
+    }
+    drawNeon2();
   })();
   </script>
 </body>

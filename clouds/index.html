@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Aurora</title>
-  <meta name="apple-mobile-web-app-title" content="Aurora">
+  <title>Clouds</title>
+  <meta name="apple-mobile-web-app-title" content="Clouds">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
   <style>
@@ -102,9 +102,9 @@
     <div class="nav-sep"></div>
     <a href="../waves/" class="nav-item">Waves</a>
     <div class="nav-sep"></div>
-    <a href="../meadow/" class="nav-item">Meadow</a>
+    <a href="../aurora/" class="nav-item">Aurora</a>
     <div class="nav-sep"></div>
-    <a href="../clouds/" class="nav-item">Clouds</a>
+    <a href="../meadow/" class="nav-item">Meadow</a>
     <div class="nav-sep"></div>
     <a href="../snow/" class="nav-item">Snow</a>
     <div class="nav-sep"></div>
@@ -139,7 +139,6 @@
       if(dx>minSwipe && dx>dy*1.5){ swiping=false; show(); }
     }, {passive:true});
     document.addEventListener('touchend', function(){ swiping=false; }, {passive:true});
-    // Desktop: left+right click simultaneously
     var buttons={};
     document.addEventListener('mousedown', function(e){
       if(isOpen) return;
@@ -152,7 +151,6 @@
     ov.addEventListener('touchstart', function(e){
       if(e.target===ov||e.target.classList.contains('nav-hint')){ hide(); e.preventDefault(); }
     });
-    // モバイルでリンクが効かない問題の対策: 明示的にナビゲーション
     var navLinks=ov.querySelectorAll('.nav-item');
     for(var i=0;i<navLinks.length;i++){
       (function(link){
