@@ -64,14 +64,14 @@
       Share → Add to Home Screen for fullscreen
     </div>
   </div>
-  <div id="menuBtn" style="position:fixed;top:12px;left:12px;z-index:400;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.15"><svg width="18" height="12" viewBox="0 0 18 12" fill="none"><line x1="0" y1="1" x2="18" y2="1" stroke="white" stroke-width="1.5"/><line x1="0" y1="6" x2="18" y2="6" stroke="white" stroke-width="1.5"/><line x1="0" y1="11" x2="18" y2="11" stroke="white" stroke-width="1.5"/></svg></div>
-  <script src="sketch.js"></script>
+  <a id="menuBtn" href="../index.html" style="position:fixed;top:12px;left:12px;z-index:400;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.15;text-decoration:none;touch-action:manipulation"><svg width="18" height="12" viewBox="0 0 18 12" fill="none"><line x1="0" y1="1" x2="18" y2="1" stroke="white" stroke-width="1.5"/><line x1="0" y1="6" x2="18" y2="6" stroke="white" stroke-width="1.5"/><line x1="0" y1="11" x2="18" y2="11" stroke="white" stroke-width="1.5"/></svg></a>
   <script>
   (function(){
-    var mb=document.getElementById('menuBtn');
-    if(mb){mb.addEventListener('touchend',function(e){e.stopPropagation();e.preventDefault();window.location.href='../index.html';});mb.addEventListener('click',function(e){e.stopPropagation();window.location.href='../index.html';});}
+    window.addEventListener('touchstart',function(e){var b=document.getElementById('menuBtn');if(b&&b.contains(e.target)){e.stopImmediatePropagation();}},true);
+    window.addEventListener('touchend',function(e){var b=document.getElementById('menuBtn');if(b&&b.contains(e.target)){e.stopImmediatePropagation();e.preventDefault();window.location.href='../index.html';}},true);
   })();
   </script>
+  <script src="sketch.js"></script>
   <script>
   if (window.navigator.standalone === true ||
       window.matchMedia('(display-mode: standalone)').matches ||
