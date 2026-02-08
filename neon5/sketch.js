@@ -335,10 +335,14 @@ function checkCollisions() {
         b.baseAngle = atan2(dy, dx) + random(-0.4, 0.4);
         a.speed = 5.5; b.speed = 5.5;
 
-        // Color change (Neon2/4 style)
-        var ncA = randomNeonColor(), ncB = randomNeonColor();
-        a.cr = ncA.r; a.cg = ncA.g; a.cb = ncA.b;
-        b.cr = ncB.r; b.cg = ncB.g; b.cb = ncB.b;
+        // Color change — advance through preset system to stay in sync with UI
+        var slotA = a.colorSlot, slotB = b.colorSlot;
+        userHueIdx[slotA] = (userHueIdx[slotA] + Math.floor(random(3, 8))) % 12;
+        userHueIdx[slotB] = (userHueIdx[slotB] + Math.floor(random(3, 8))) % 12;
+        userColors[slotA] = PRESET_COLORS[userHueIdx[slotA]];
+        userColors[slotB] = PRESET_COLORS[userHueIdx[slotB]];
+        a.cr = userColors[slotA].r; a.cg = userColors[slotA].g; a.cb = userColors[slotA].b;
+        b.cr = userColors[slotB].r; b.cg = userColors[slotB].g; b.cb = userColors[slotB].b;
       }
     }
   }

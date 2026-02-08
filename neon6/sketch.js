@@ -329,14 +329,31 @@ function checkCollisions() {
         a.orbitType = b.orbitType;
         b.orbitType = tmpType;
 
-        // Randomize tilts
-        a.tilt += random(-0.5, 0.5);
-        b.tilt += random(-0.5, 0.5);
+        // Big tilt change + new phase → visually distinct orbit
+        a.tilt += random(-PI / 2, PI / 2);
+        b.tilt += random(-PI / 2, PI / 2);
+        a.phase = random(TWO_PI);
+        b.phase = random(TWO_PI);
+        a.precession = random(-0.001, 0.001);
+        b.precession = random(-0.001, 0.001);
 
-        // Color change
-        var ncA = randomNeonColor(), ncB = randomNeonColor();
-        a.cr = ncA.r; a.cg = ncA.g; a.cb = ncA.b;
-        b.cr = ncB.r; b.cg = ncB.g; b.cb = ncB.b;
+        // Reset trail history to avoid jump lines
+        var posA = orbitPosition(a), posB = orbitPosition(b);
+        a.x = posA.x; a.y = posA.y;
+        a.prevX = posA.x; a.prevY = posA.y;
+        a.ppx = posA.x; a.ppy = posA.y;
+        b.x = posB.x; b.y = posB.y;
+        b.prevX = posB.x; b.prevY = posB.y;
+        b.ppx = posB.x; b.ppy = posB.y;
+
+        // Color change — advance through preset system to stay in sync with UI
+        var slotA = a.colorSlot, slotB = b.colorSlot;
+        userHueIdx[slotA] = (userHueIdx[slotA] + Math.floor(random(3, 8))) % 12;
+        userHueIdx[slotB] = (userHueIdx[slotB] + Math.floor(random(3, 8))) % 12;
+        userColors[slotA] = PRESET_COLORS[userHueIdx[slotA]];
+        userColors[slotB] = PRESET_COLORS[userHueIdx[slotB]];
+        a.cr = userColors[slotA].r; a.cg = userColors[slotA].g; a.cb = userColors[slotA].b;
+        b.cr = userColors[slotB].r; b.cg = userColors[slotB].g; b.cb = userColors[slotB].b;
       }
     }
   }
