@@ -12,12 +12,6 @@ let audioCtx;
 let windNode, windGain;
 let driftNode, driftGain;
 
-// --- デバイスセンサー ---
-let tiltX = 0;
-let tiltY = 0;
-let hasTilt = false;
-let permissionRequested = false;
-
 // --- タッチ/マウス ---
 let lastTouchX = 0.5;
 let lastTouchY = 0.5;
@@ -40,19 +34,9 @@ let holdY = 0;
 let isHolding = false;
 let holdThreshold = 20;
 
-// --- シェイク（吹雪） ---
-let shakeIntensity = 0;
-let lastAccX = 0;
-let lastAccY = 0;
-let lastAccZ = 0;
-
 // --- ピンチ（密度） ---
 let pinchScale = 1.0;
 let lastPinchDist = 0;
-
-// --- コンパス ---
-let compassHeading = 0;
-let hasCompass = false;
 
 // --- 時刻制御 ---
 let manualHour = -1;
@@ -181,10 +165,7 @@ function draw() {
 
   // --- 操作入力 ---
   let mx, my;
-  if (hasTilt) {
-    mx = constrain(map(tiltX, -30, 30, 0, 1), 0, 1);
-    my = constrain(map(tiltY, 0, 60, 0, 1), 0, 1);
-  } else if (isTouchDevice) {
+  if (isTouchDevice) {
     mx = lastTouchX;
     my = lastTouchY;
   } else if (mouseX === 0 && mouseY === 0) {
@@ -196,9 +177,7 @@ function draw() {
   }
 
   // 風
-  if (hasCompass) {
-    windTarget = sin(radians(compassHeading)) * 1.5;
-  } else if (hasInteracted) {
+  if (hasInteracted) {
     windTarget = (mx - 0.5) * 0.8;
   }
   windTarget += gustDirX * gustStrength * 2.5;
@@ -206,7 +185,6 @@ function draw() {
 
   // 減衰
   gustStrength *= 0.96;
-  shakeIntensity *= 0.93;
   if (touches.length < 2) pinchScale = lerp(pinchScale, 1.0, 0.005);
   if (isHolding) holdTime += 0.016;
 
@@ -231,7 +209,7 @@ function draw() {
   let midWave = noise(t * 0.5, 100) * 0.3;           // 中くらいの変動
   let surgePre = noise(t * 0.8, 200);                 // 突然の吹雪の種
   let surge = surgePre > 0.75 ? (surgePre - 0.75) * 4.0 * 1.5 : 0; // 閾値超えで急増
-  flurryIntensity = 1.0 + slowWave + midWave + surge + shakeIntensity * 1.5;
+  flurryIntensity = 1.0 + slowWave + midWave + surge;
 
   // パーティクル数を揺らぎに応じて調整
   let targetCounts = [
@@ -260,8 +238,7 @@ function draw() {
     }
   }
 
-  // 吹雪モード: シェイクで一時的にスピードアップ
-  let speedMult = 1 + shakeIntensity * 4;
+  let speedMult = 1;
 
   // 描画（遠→近の順） — Canvas2D直接描画でGPUアクセラレーション活用
   let ctx = drawingContext;
@@ -537,14 +514,12 @@ function touchStarted() {
     appStarted = true; isTouchDevice = true;
     if (!soundStarted) initSound();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    requestOrientationPermission(); requestMotionPermission();
     return false;
   }
   hasInteracted = true;
   if (!soundStarted) initSound();
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   isTouchDevice = true;
-  if (!hasTilt) { requestOrientationPermission(); requestMotionPermission(); }
 
   if (touches.length === 1 && touches[0].y < height * 0.12) {
     handleTimeChange(); return false;
@@ -647,50 +622,6 @@ function handleTimeChange() {
     tiltStatusMsg = colorThemes[floor(manualHour / 2) % 12].name;
     statusShowTime = millis(); lastSkyTapTime = now_ms;
   }
-}
-
-// ============================================
-// デバイスセンサー
-// ============================================
-function handleOrientation(event) {
-  if (event.gamma !== null && event.beta !== null) { tiltX = event.gamma; tiltY = event.beta; hasTilt = true; }
-  if (event.alpha !== null) { compassHeading = event.alpha; hasCompass = true; }
-}
-
-function requestOrientationPermission() {
-  if (hasTilt) return;
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    if (permissionRequested) return; permissionRequested = true;
-    DeviceOrientationEvent.requestPermission().then(function(r) {
-      if (r === 'granted') { window.addEventListener('deviceorientation', handleOrientation); tiltStatusMsg = 'Tilt enabled'; }
-      else { tiltStatusMsg = 'Touch to interact'; }
-      statusShowTime = millis();
-    }).catch(function() { tiltStatusMsg = 'Touch to interact'; statusShowTime = millis(); });
-  } else if (typeof DeviceOrientationEvent !== 'undefined') {
-    if (!permissionRequested) {
-      permissionRequested = true;
-      window.addEventListener('deviceorientation', handleOrientation);
-      setTimeout(function() { tiltStatusMsg = hasTilt ? 'Tilt enabled' : 'Touch to interact'; statusShowTime = millis(); }, 1000);
-    }
-  } else { tiltStatusMsg = 'Touch to interact'; statusShowTime = millis(); }
-}
-
-let motionPermissionRequested = false;
-function handleMotion(event) {
-  let acc = event.accelerationIncludingGravity || event.acceleration;
-  if (!acc) return;
-  let ax=acc.x||0, ay=acc.y||0, az=acc.z||0;
-  let d = abs(ax-lastAccX)+abs(ay-lastAccY)+abs(az-lastAccZ);
-  lastAccX=ax; lastAccY=ay; lastAccZ=az;
-  if (d > 15) shakeIntensity = min(shakeIntensity + d * 0.02, 1.0);
-}
-
-function requestMotionPermission() {
-  if (motionPermissionRequested) return;
-  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-    motionPermissionRequested = true;
-    DeviceMotionEvent.requestPermission().then(function(r) { if (r === 'granted') window.addEventListener('devicemotion', handleMotion); }).catch(function(){});
-  } else if (typeof DeviceMotionEvent !== 'undefined') { motionPermissionRequested = true; window.addEventListener('devicemotion', handleMotion); }
 }
 
 // ============================================

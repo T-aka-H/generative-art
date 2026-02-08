@@ -11,16 +11,13 @@ var appStarted = false;
 var appStartTime = 0;
 
 var audioCtx, windNode, windGain, driftNode, driftGain;
-var tiltX = 0, tiltY = 0, hasTilt = false, permissionRequested = false;
 var lastTouchX = 0.5, lastTouchY = 0.5;
 var isTouchDevice = false, hasInteracted = false;
 var tiltStatusMsg = '', statusShowTime = 0;
 var prevTouchX = 0, prevTouchY = 0;
 var gustStrength = 0, gustDirX = 0, gustDirY = 0;
 var holdTime = 0, holdX = 0, holdY = 0, isHolding = false, holdThreshold = 20;
-var shakeIntensity = 0, lastAccX = 0, lastAccY = 0, lastAccZ = 0;
 var pinchScale = 1.0, lastPinchDist = 0;
-var compassHeading = 0, hasCompass = false;
 var manualHour = 18, lastTapTime = 0; // 18 = Sunset Drive
 var ripples = [];
 
@@ -171,14 +168,6 @@ function updateSkater(idx) {
     while (diff > PI) diff -= TWO_PI;
     while (diff < -PI) diff += TWO_PI;
     s.curvature += diff * gustStrength * 0.012;
-  }
-
-  // Tilt
-  if (hasTilt) {
-    var diff = atan2(tiltY - 30, tiltX) - s.angle;
-    while (diff > PI) diff -= TWO_PI;
-    while (diff < -PI) diff += TWO_PI;
-    s.curvature += diff * 0.002;
   }
 
   s.angle += s.curvature;
@@ -348,7 +337,7 @@ function draw() {
   var secG = lerp(cur.secondary[1], nxt.secondary[1], tb);
   var secB = lerp(cur.secondary[2], nxt.secondary[2], tb);
 
-  gustStrength *= 0.96; shakeIntensity *= 0.93;
+  gustStrength *= 0.96;
   if (touches.length < 2) pinchScale = lerp(pinchScale, 1.0, 0.005);
   if (isHolding) holdTime += 0.016;
   var pulse = 0.75 + Math.sin(t * 0.5) * 0.25;
@@ -585,10 +574,10 @@ function mouseMoved() {
 }
 
 function touchStarted() {
-  if (!appStarted) { appStarted = true; appStartTime = millis(); isTouchDevice = true; if (!soundStarted) initSound(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); requestOrientationPermission(); requestMotionPermission(); return false; }
+  if (!appStarted) { appStarted = true; appStartTime = millis(); isTouchDevice = true; if (!soundStarted) initSound(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); return false; }
   hasInteracted = true; lastMouseMoveMs = millis();
   if (!soundStarted) initSound(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  isTouchDevice = true; if (!hasTilt) { requestOrientationPermission(); requestMotionPermission(); }
+  isTouchDevice = true;
   handleThemeChange();
   for (var i = 0; i < touches.length; i++) {
     ripples.push({ x: touches[i].x, y: touches[i].y, age: 0, useSecondary: ripples.length % 2 === 0 });
@@ -619,26 +608,6 @@ function touchMoved() {
   return false;
 }
 function touchEnded() { isHolding = false; holdTime = 0; if (touches.length === 0) lastPinchDist = 0; return false; }
-
-// ============================================
-// Device sensors
-// ============================================
-function handleOrientation(e) { if (e.gamma !== null && e.beta !== null) { tiltX = e.gamma; tiltY = e.beta; hasTilt = true; } if (e.alpha !== null) { compassHeading = e.alpha; hasCompass = true; } }
-function requestOrientationPermission() {
-  if (hasTilt) return;
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    if (permissionRequested) return; permissionRequested = true;
-    DeviceOrientationEvent.requestPermission().then(function(r) { if (r === 'granted') { window.addEventListener('deviceorientation', handleOrientation); tiltStatusMsg = 'Tilt enabled'; } else { tiltStatusMsg = 'Touch to interact'; } statusShowTime = millis(); }).catch(function() { tiltStatusMsg = 'Touch to interact'; statusShowTime = millis(); });
-  } else if (typeof DeviceOrientationEvent !== 'undefined') { if (!permissionRequested) { permissionRequested = true; window.addEventListener('deviceorientation', handleOrientation); setTimeout(function() { tiltStatusMsg = hasTilt ? 'Tilt enabled' : 'Touch to interact'; statusShowTime = millis(); }, 1000); } }
-  else { tiltStatusMsg = 'Touch to interact'; statusShowTime = millis(); }
-}
-var motionPermissionRequested = false;
-function handleMotion(e) { var acc = e.accelerationIncludingGravity || e.acceleration; if (!acc) return; var ax = acc.x || 0, ay = acc.y || 0, az = acc.z || 0; var d = abs(ax - lastAccX) + abs(ay - lastAccY) + abs(az - lastAccZ); lastAccX = ax; lastAccY = ay; lastAccZ = az; if (d > 15) shakeIntensity = min(shakeIntensity + d * 0.02, 1.0); }
-function requestMotionPermission() {
-  if (motionPermissionRequested) return;
-  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') { motionPermissionRequested = true; DeviceMotionEvent.requestPermission().then(function(r) { if (r === 'granted') window.addEventListener('devicemotion', handleMotion); }).catch(function(){}); }
-  else if (typeof DeviceMotionEvent !== 'undefined') { motionPermissionRequested = true; window.addEventListener('devicemotion', handleMotion); }
-}
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
