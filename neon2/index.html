@@ -68,7 +68,7 @@
   <script>
   (function(){
     var b=document.getElementById('menuBtn');
-    if(b){b.addEventListener('touchstart',function(e){e.stopPropagation();});b.addEventListener('touchend',function(e){e.stopPropagation();});}
+    if(b){b.addEventListener('touchstart',function(e){e.stopPropagation();});b.addEventListener('touchend',function(e){e.stopPropagation();e.preventDefault();b.click();});}
   })();
   </script>
   <script src="sketch.js"></script>
