@@ -58,8 +58,7 @@ let hasCompass = false;
 let manualHour = -1;
 let lastSkyTapTime = 0;
 
-// --- ボケテクスチャ ---
-let bokehGfx;
+// (bokehGfx removed — using Canvas2D radial gradients instead)
 
 // --- パーティクル ---
 let particles = [];
@@ -105,15 +104,6 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   colorMode(HSB, 360, 100, 100, 100);
   noStroke();
-
-  // ボケテクスチャ生成
-  bokehGfx = createGraphics(128, 128);
-  bokehGfx.noStroke();
-  for (let r = 64; r > 0; r--) {
-    let alpha = map(r, 64, 0, 0, 55);
-    bokehGfx.fill(255, alpha);
-    bokehGfx.ellipse(64, 64, r * 2, r * 2);
-  }
 
   initParticles();
 }
@@ -272,8 +262,8 @@ function draw() {
   // 吹雪モード: シェイクで一時的にスピードアップ
   let speedMult = 1 + shakeIntensity * 4;
 
-  // 描画（遠→近の順）
-  imageMode(CENTER);
+  // 描画（遠→近の順） — Canvas2D直接描画でGPUアクセラレーション活用
+  let ctx = drawingContext;
   for (let p of particles) {
     // --- サイズ揺らぎ: ノイズで呼吸するように膨縮 ---
     let sizeNoise = noise(p.sizePhase + t * p.sizeSpeed);
@@ -361,10 +351,19 @@ function draw() {
       pS += p.melting * 15;
     }
 
-    tint(pH, pS, pB, pA);
-    image(bokehGfx, p.x, p.y, p.size, p.size);
+    let _rgb = hsbToRgb(pH, pS, pB);
+    let _a = pA * 0.0022;
+    let _r = p.size * 0.5;
+    let _pre = _rgb[0] + ',' + _rgb[1] + ',' + _rgb[2];
+    let _g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, _r);
+    _g.addColorStop(0, 'rgba(' + _pre + ',' + _a + ')');
+    _g.addColorStop(0.5, 'rgba(' + _pre + ',' + (_a * 0.3) + ')');
+    _g.addColorStop(1, 'rgba(' + _pre + ',0)');
+    ctx.fillStyle = _g;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, _r, 0, 6.2832);
+    ctx.fill();
   }
-  noTint();
 
   // dying で画面外に出たパーティクルを除去
   particles = particles.filter(p => !p._remove);
@@ -372,13 +371,16 @@ function draw() {
   // --- 長押し: 暖かいオーラ ---
   if (isHolding && holdTime > 0.3) {
     let auraR = min(holdTime * 60, 250);
-    let auraA = min(holdTime * 8, 15);
+    let auraA = min(holdTime * 8, 15) / 100;
     let accentH = lerp(cur.accent, nxt.accent, tb);
-    for (let r = auraR; r > 0; r -= 8) {
-      let a = map(r, auraR, 0, 0, auraA);
-      fill(accentH, 30, 80, a);
-      ellipse(holdX, holdY, r * 2, r * 2);
-    }
+    let aRgb = hsbToRgb(accentH, 30, 80);
+    let aGrad = ctx.createRadialGradient(holdX, holdY, 0, holdX, holdY, auraR);
+    aGrad.addColorStop(0, 'rgba(' + aRgb[0] + ',' + aRgb[1] + ',' + aRgb[2] + ',' + auraA + ')');
+    aGrad.addColorStop(1, 'rgba(' + aRgb[0] + ',' + aRgb[1] + ',' + aRgb[2] + ',0)');
+    ctx.fillStyle = aGrad;
+    ctx.beginPath();
+    ctx.arc(holdX, holdY, auraR, 0, 6.2832);
+    ctx.fill();
   }
 
   t += 0.01;
@@ -410,17 +412,14 @@ function drawBackground(cur, nxt, tb) {
   let botS = lerp(cur.bgBot[1], nxt.bgBot[1], tb);
   let botB = lerp(cur.bgBot[2], nxt.bgBot[2], tb);
 
-  let steps = 20;
-  noStroke();
-  for (let i = 0; i < steps; i++) {
-    let t1 = i / steps;
-    let t2 = (i + 1) / steps;
-    let h1 = lerp(topH, botH, t1);
-    let s1 = lerp(topS, botS, t1);
-    let b1 = lerp(topB, botB, t1);
-    fill(h1, s1, b1);
-    rect(0, height * t1, width, height * (t2 - t1) + 1);
-  }
+  let ctx = drawingContext;
+  let topRgb = hsbToRgb(topH, topS, topB);
+  let botRgb = hsbToRgb(botH, botS, botB);
+  let grad = ctx.createLinearGradient(0, 0, 0, height);
+  grad.addColorStop(0, 'rgb(' + topRgb[0] + ',' + topRgb[1] + ',' + topRgb[2] + ')');
+  grad.addColorStop(1, 'rgb(' + botRgb[0] + ',' + botRgb[1] + ',' + botRgb[2] + ')');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, height);
 }
 
 // ============================================
@@ -429,6 +428,20 @@ function lerpHue(h1, h2, amt) {
   if (diff > 180) diff -= 360;
   if (diff < -180) diff += 360;
   return (h1 + diff * amt + 360) % 360;
+}
+
+function hsbToRgb(h, s, b) {
+  h = ((h % 360) + 360) % 360;
+  s /= 100; b /= 100;
+  let c = b * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = b - c;
+  let r, g, bl;
+  if (h < 60) { r=c; g=x; bl=0; }
+  else if (h < 120) { r=x; g=c; bl=0; }
+  else if (h < 180) { r=0; g=c; bl=x; }
+  else if (h < 240) { r=0; g=x; bl=c; }
+  else if (h < 300) { r=x; g=0; bl=c; }
+  else { r=c; g=0; bl=x; }
+  return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((bl+m)*255)];
 }
 
 // ============================================
