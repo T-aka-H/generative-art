@@ -531,50 +531,20 @@ function drawEraserUI(ctx) {
   var cx = eraserRect.x + eraserRect.w / 2;
   var cy = eraserRect.y + eraserRect.h / 2;
   var pulse = 0.75 + Math.sin(t * 0.5) * 0.25;
-  var rot = t * 0.4;
 
-  // Rotating arc ring with 3 skater color segments
+  // Silver neon square
   ctx.globalCompositeOperation = 'lighter';
-  var arcR = 12;
-  var segAngle = Math.PI * 2 / 3;
-  for (var ci = 0; ci < 3; ci++) {
-    var col = SKATER_COLORS[ci];
-    var colStr = col.r + ',' + col.g + ',' + col.b;
-    var startA = rot + ci * segAngle;
-    var endA = startA + segAngle * 0.7;
-    // Outer glow
-    ctx.strokeStyle = 'rgba(' + colStr + ',' + (0.12 * pulse) + ')';
-    ctx.lineWidth = 6;
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(cx, cy, arcR, startA, endA); ctx.stroke();
-    // Mid glow
-    ctx.strokeStyle = 'rgba(' + colStr + ',' + (0.3 * pulse) + ')';
-    ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(cx, cy, arcR, startA, endA); ctx.stroke();
-    // Core
-    ctx.strokeStyle = 'rgba(' + colStr + ',' + (0.7 * pulse) + ')';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.arc(cx, cy, arcR, startA, endA); ctx.stroke();
-  }
-  // Center: 3-color neon star — one arm per skater color
-  var starRot = -rot * 0.6;
-  var starR = 6;
-  for (var ci = 0; ci < 3; ci++) {
-    var col2 = SKATER_COLORS[ci];
-    var cs2 = col2.r + ',' + col2.g + ',' + col2.b;
-    var a = starRot + ci * Math.PI / 3;
-    var x1 = cx + Math.cos(a) * starR, y1 = cy + Math.sin(a) * starR;
-    var x2 = cx - Math.cos(a) * starR, y2 = cy - Math.sin(a) * starR;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(' + cs2 + ',' + (0.15 * pulse) + ')';
-    ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-    ctx.strokeStyle = 'rgba(' + cs2 + ',' + (0.35 * pulse) + ')';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
-    ctx.strokeStyle = 'rgba(' + cs2 + ',' + (0.8 * pulse) + ')';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  var layers = [
+    { r: 14, a: 0.06 * pulse },
+    { r: 10, a: 0.14 * pulse },
+    { r: 7,  a: 0.3 * pulse },
+    { r: 4,  a: 0.6 * pulse },
+    { r: 2,  a: 1.0 * pulse }
+  ];
+  for (var li = 0; li < layers.length; li++) {
+    ctx.fillStyle = 'rgba(200,210,220,' + layers[li].a + ')';
+    drawShape(ctx, 'square', cx, cy, layers[li].r, -Math.PI / 4);
+    ctx.fill();
   }
   ctx.globalCompositeOperation = 'source-over';
 }
