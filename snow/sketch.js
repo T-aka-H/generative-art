@@ -144,6 +144,7 @@ function createParticle(L, layer, fromTop) {
     melting: 0,
     sizePhase: random(1000),
     sizeSpeed: random(0.008, 0.025),
+    focused: random() < 0.2,
   };
 }
 
@@ -352,13 +353,21 @@ function draw() {
     }
 
     let _rgb = hsbToRgb(pH, pS, pB);
-    let _a = pA * 0.0022;
     let _r = p.size * 0.5;
     let _pre = _rgb[0] + ',' + _rgb[1] + ',' + _rgb[2];
     let _g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, _r);
-    _g.addColorStop(0, 'rgba(' + _pre + ',' + _a + ')');
-    _g.addColorStop(0.5, 'rgba(' + _pre + ',' + (_a * 0.3) + ')');
-    _g.addColorStop(1, 'rgba(' + _pre + ',0)');
+    if (p.focused) {
+      let _a = pA * 0.004;
+      _g.addColorStop(0, 'rgba(' + _pre + ',' + _a + ')');
+      _g.addColorStop(0.6, 'rgba(' + _pre + ',' + (_a * 0.7) + ')');
+      _g.addColorStop(0.85, 'rgba(' + _pre + ',' + (_a * 0.25) + ')');
+      _g.addColorStop(1, 'rgba(' + _pre + ',0)');
+    } else {
+      let _a = pA * 0.0022;
+      _g.addColorStop(0, 'rgba(' + _pre + ',' + _a + ')');
+      _g.addColorStop(0.5, 'rgba(' + _pre + ',' + (_a * 0.3) + ')');
+      _g.addColorStop(1, 'rgba(' + _pre + ',0)');
+    }
     ctx.fillStyle = _g;
     ctx.beginPath();
     ctx.arc(p.x, p.y, _r, 0, 6.2832);
