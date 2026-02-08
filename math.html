@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>The Math Behind — Gen-Art</title>
+  <link rel="icon" href="favicon.ico">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html {
+      background: #000;
+      color: rgba(255,255,255,0.72);
+      font-family: Georgia, 'Times New Roman', serif;
+      scroll-behavior: smooth;
+    }
+    body {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 80px 28px 100px;
+      line-height: 1.85;
+      font-size: 15px;
+    }
+    a { color: rgba(255,255,255,0.45); transition: color 0.3s; }
+    a:hover { color: rgba(255,255,255,0.8); }
+    .back {
+      display: inline-block;
+      text-decoration: none;
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 60px;
+    }
+    h1 {
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 48px;
+    }
+    .lang-note {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.25);
+      margin-bottom: 56px;
+    }
+    h2 {
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      margin: 64px 0 8px;
+    }
+    h2:first-of-type { margin-top: 0; }
+    h3 {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.4);
+      margin: 4px 0 20px;
+    }
+    p { margin-bottom: 16px; }
+    em { font-style: italic; color: rgba(255,255,255,0.85); }
+    .sep {
+      width: 40px;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 56px 0;
+    }
+    .lang-divider {
+      text-align: center;
+      color: rgba(255,255,255,0.2);
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin: 80px 0 64px;
+      position: relative;
+    }
+    .lang-divider::before,
+    .lang-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      width: 60px;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+    .lang-divider::before { right: calc(50% + 60px); }
+    .lang-divider::after { left: calc(50% + 60px); }
+    .used-in {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.3);
+      margin: 20px 0 8px;
+    }
+    .formula {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 20px;
+      margin: 16px 0;
+      text-align: center;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .figure {
+      margin: 24px 0;
+      text-align: center;
+    }
+    .figure svg, .figure canvas {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+    }
+    .figure canvas {
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 4px;
+    }
+    .figure-cap {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.25);
+      margin-top: 8px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 50px 20px 80px; font-size: 14px; }
+      h2 { font-size: 16px; margin: 48px 0 8px; }
+    }
+  </style>
+</head>
+<body>
+  <a href="./index.html" class="back">&larr; Gallery</a>
+  <h1>The Math Behind</h1>
+  <p class="lang-note">Japanese translation follows below.</p>
+
+  <!-- ==================== ENGLISH ==================== -->
+
+  <h2>Noise</h2>
+  <h3>The Foundation of Organic Motion</h3>
+  <p>Pure randomness is chaos: every value is independent of its neighbors, producing static and jitter. But nature is smooth &mdash; wind gusts, ocean swells, and flame flicker all change continuously. <em>Perlin noise</em>, invented by Ken Perlin in 1983 for the film <em>Tron</em>, generates pseudo-random values that vary smoothly in space and time. It is the single most important tool in this collection.</p>
+  <p>The idea is simple: assign random gradients to points on a grid, then interpolate between them with a smooth curve. The result is a signal that wanders unpredictably but never jumps. By sampling this signal at different scales (octaves) and summing the results, you get fractal detail at every level &mdash; large, lazy swells overlaid with fine ripples.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 500 180" width="500" height="180">
+      <!-- Axes -->
+      <line x1="40" y1="10" x2="40" y2="160" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <line x1="40" y1="85" x2="480" y2="85" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <!-- Random (red, jagged) -->
+      <polyline fill="none" stroke="rgba(255,60,90,0.5)" stroke-width="1.5"
+        points="40,72 50,130 60,25 70,110 80,45 90,140 100,30 110,95 120,55 130,150 140,20 150,100 160,65 170,135 180,28 190,88 200,50 210,145 220,35 230,120 240,42 250,90 260,155 270,38 280,115 290,60 300,130 310,22 320,105 330,48 340,140 350,32 360,98 370,68 380,125 390,40 400,110 410,58 420,135 430,25 440,95 450,70 460,128 470,35 480,90"/>
+      <!-- Perlin (blue, smooth) -->
+      <polyline fill="none" stroke="rgba(60,140,255,0.7)" stroke-width="2"
+        points="40,85 50,80 60,72 70,62 80,55 90,52 100,55 110,62 120,72 130,80 140,85 150,88 160,92 170,100 180,110 190,118 200,122 210,120 220,115 230,108 240,100 250,95 260,92 270,88 280,82 290,72 300,60 310,50 320,45 330,48 340,55 350,65 360,78 370,88 380,95 390,100 400,105 410,112 420,120 430,125 440,122 450,115 460,105 470,95 480,88"/>
+      <!-- Labels -->
+      <text x="485" y="38" fill="rgba(255,60,90,0.5)" font-family="-apple-system,sans-serif" font-size="10">Random</text>
+      <text x="485" y="92" fill="rgba(60,140,255,0.7)" font-family="-apple-system,sans-serif" font-size="10">Perlin</text>
+    </svg>
+    <div class="figure-cap">Random values jump wildly; Perlin noise flows smoothly through the same range.</div>
+  </div>
+
+  <div class="figure">
+    <canvas id="cvNoise2D" width="500" height="200"></canvas>
+    <div class="figure-cap">2D Perlin noise field evolving in real time. Every pixel's brightness is noise(x, y, time).</div>
+  </div>
+
+  <p class="used-in">Used in: Waves, Aurora, Meadow, Clouds, Snow, Neon1, Neon2, Neon3</p>
+
+  <div class="sep"></div>
+
+  <h2>Sine Waves</h2>
+  <h3>The Rhythm of Nature</h3>
+  <p>A sine wave is the simplest periodic motion: a pendulum, a vibrating string, the orbit of the moon projected onto one axis. It is defined by three parameters: <em>amplitude</em> (how high), <em>frequency</em> (how fast), and <em>phase</em> (where it starts).</p>
+  <p>One sine wave is boring &mdash; perfectly regular, perfectly predictable. But add a second at a different frequency, and a third at yet another, and the sum becomes something richer. Fourier showed that <em>any</em> shape can be decomposed into sine waves. In Waves, 120 layers of sin + noise are superimposed to simulate an ocean.</p>
+
+  <div class="formula">y = A&middot;sin(frequency &middot; x + phase + time)</div>
+
+  <div class="figure">
+    <svg viewBox="0 0 500 200" width="500" height="200">
+      <!-- Single sine -->
+      <polyline fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1" points="0,50 10,42 20,35 30,32 40,35 50,42 60,50 70,58 80,65 90,68 100,65 110,58 120,50 130,42 140,35 150,32 160,35 170,42 180,50 190,58 200,65 210,68 220,65 230,58 240,50 250,42 260,35 270,32 280,35 290,42 300,50 310,58 320,65 330,68 340,65 350,58 360,50 370,42 380,35 390,32 400,35 410,42 420,50 430,58 440,65 450,68 460,65 470,58 480,50 490,42 500,35"/>
+      <text x="505" y="54" fill="rgba(255,255,255,0.25)" font-family="-apple-system,sans-serif" font-size="9">1 wave</text>
+      <!-- Two sines summed -->
+      <polyline fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.2" points="0,120 10,108 20,100 30,98 40,102 50,108 60,114 70,118 80,120 90,118 100,114 110,108 120,105 130,108 140,116 150,126 160,132 170,130 180,122 190,112 200,106 210,106 220,112 230,120 240,126 250,128 260,124 270,116 280,108 290,104 300,106 310,114 320,126 330,134 340,134 350,126 360,116 370,108 380,104 390,108 400,116 410,124 420,128 430,126 440,120 450,112 460,108 470,110 480,118 490,126 500,130"/>
+      <text x="505" y="124" fill="rgba(255,255,255,0.4)" font-family="-apple-system,sans-serif" font-size="9">2 waves</text>
+      <!-- Three sines summed (complex) -->
+      <polyline fill="none" stroke="rgba(100,180,255,0.7)" stroke-width="1.5" points="0,175 10,162 20,155 30,158 40,165 50,168 60,165 70,158 80,155 90,160 100,170 110,175 120,172 130,162 140,155 150,158 160,168 170,178 180,180 190,172 200,160 210,152 220,155 230,165 240,178 250,182 260,175 270,162 280,155 290,158 300,168 310,178 320,180 330,172 340,160 350,155 360,160 370,170 380,178 390,178 400,170 410,158 420,152 430,155 440,165 450,175 460,178 470,172 480,162 490,155 500,158"/>
+      <text x="505" y="178" fill="rgba(100,180,255,0.7)" font-family="-apple-system,sans-serif" font-size="9">3 waves</text>
+    </svg>
+    <div class="figure-cap">Superimposing sine waves at different frequencies creates complex, natural-looking waveforms.</div>
+  </div>
+
+  <p class="used-in">Used in: Waves (120 layers), Snow (horizontal drift), Wind effects</p>
+
+  <div class="sep"></div>
+
+  <h2>Domain Warping</h2>
+  <h3>Folding Space</h3>
+  <p>Domain warping is a recursive trick: instead of sampling noise at position (x, y), you first <em>displace</em> that position by another noise value. The input coordinates themselves become fluid.</p>
+  <div class="formula">color = noise(x + noise(x, y, t)&middot;A, &nbsp;y + noise(x+5, y+5, t)&middot;A)</div>
+  <p>The result is dramatic. Straight lines become S-curves. Uniform regions fold into swirls and curtains. With a large amplitude <em>A</em>, the pattern resembles aurora borealis or cloud formations &mdash; exactly what we use it for.</p>
+
+  <div class="figure">
+    <canvas id="cvWarp" width="500" height="200"></canvas>
+    <div class="figure-cap">Left: regular grid. Right: same grid after domain warping. Points flow and fold like fabric.</div>
+  </div>
+
+  <p class="used-in">Used in: Aurora, Meadow, Clouds</p>
+
+  <div class="sep"></div>
+
+  <h2>Smoothstep</h2>
+  <h3>The Art of Soft Edges</h3>
+  <p>In the real world, boundaries are rarely sharp. Clouds don't have crisp outlines; day doesn't switch to night in an instant. The <em>smoothstep</em> function provides a mathematically elegant transition between 0 and 1:</p>
+  <div class="formula">smoothstep(t) = t&sup2;(3 &minus; 2t)</div>
+  <p>At t=0 it's flat (slope zero). At t=1 it's flat again. In between, it accelerates smoothly, reaches maximum speed at the midpoint, and decelerates. This S-curve is used everywhere: cloud density thresholds, color theme transitions, fade-ins, and interpolation of noise gradients themselves.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 300 200" width="300" height="200">
+      <!-- Axes -->
+      <line x1="40" y1="170" x2="270" y2="170" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      <line x1="40" y1="170" x2="40" y2="20" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      <text x="32" y="180" fill="rgba(255,255,255,0.2)" font-family="-apple-system,sans-serif" font-size="9">0</text>
+      <text x="262" y="180" fill="rgba(255,255,255,0.2)" font-family="-apple-system,sans-serif" font-size="9">1</text>
+      <text x="22" y="28" fill="rgba(255,255,255,0.2)" font-family="-apple-system,sans-serif" font-size="9">1</text>
+      <!-- Linear (gray dashed) -->
+      <line x1="40" y1="170" x2="270" y2="20" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="160" y="78" fill="rgba(255,255,255,0.15)" font-family="-apple-system,sans-serif" font-size="9" transform="rotate(-33,160,78)">linear</text>
+      <!-- Smoothstep (bright curve) -->
+      <polyline fill="none" stroke="rgba(100,200,255,0.7)" stroke-width="2"
+        points="40,170 49,169 58,166 67,162 76,155 85,147 94,138 103,128 112,118 121,108 130,98 139,88 148,78 157,69 166,61 175,53 184,47 193,41 202,37 211,33 220,30 229,27 238,24 247,22 256,21 265,20 270,20"/>
+      <text x="200" y="55" fill="rgba(100,200,255,0.7)" font-family="-apple-system,sans-serif" font-size="9">smoothstep</text>
+    </svg>
+    <div class="figure-cap">Linear interpolation (dashed) vs smoothstep (solid). Smoothstep starts and ends with zero velocity.</div>
+  </div>
+
+  <p class="used-in">Used in: Clouds (density threshold), all works (theme transitions, noise interpolation)</p>
+
+  <div class="sep"></div>
+
+  <h2>Curvature Physics</h2>
+  <h3>Drawing with Motion</h3>
+  <p>In the Neon series, shapes are never stamped onto the screen. Instead, they emerge from <em>how an object moves</em>. The key insight: if you add a constant to an object's heading angle every frame, it traces a circle. Change that constant, and you get spirals, figure-eights, or wandering curves.</p>
+  <div class="formula">angle += curvature &nbsp;&nbsp;&rarr;&nbsp;&nbsp; x += cos(angle) &middot; speed, &nbsp;y += sin(angle) &middot; speed</div>
+  <p>For circle trajectories, curvature &asymp; 0.03 rad/frame produces loops with radius &asymp; 83px. For triangles, the skater goes straight for 50&ndash;150px, then turns ~120&deg; sharply. For squares, the turn angle is 90&deg;. The shape is defined not by what you draw, but by <em>the physics of the path</em>.</p>
+
+  <div class="figure">
+    <canvas id="cvCurve" width="500" height="200"></canvas>
+    <div class="figure-cap">Three curvature regimes: constant (circle), 120&deg; turns (triangle), 90&deg; turns (square).</div>
+  </div>
+
+  <p class="used-in">Used in: Neon1 (smooth curves), Neon2 (triangular paths), Neon3 (all three shapes)</p>
+
+  <div class="sep"></div>
+
+  <h2>Additive Blending</h2>
+  <h3>Light from Numbers</h3>
+  <p>In the physical world, light adds up. Two flashlights pointed at the same spot make it brighter, not darker. Digital screens work the same way, and the <code>lighter</code> composite mode simulates this: pixel values are summed, clamping at white.</p>
+  <div class="formula">result.r = min(255, a.r + b.r)</div>
+  <p>This is why the Neon trails glow. Each skater leaves a faint trail (alpha &asymp; 0.05). Where two trails cross, the light doubles. Where many converge, the intersection blazes white. The neon glow is not painted &mdash; it is an emergent property of additive math.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 300 160" width="300" height="160">
+      <!-- Red circle -->
+      <circle cx="120" cy="80" r="50" fill="rgba(255,40,80,0.35)"/>
+      <!-- Blue circle -->
+      <circle cx="180" cy="80" r="50" fill="rgba(20,100,255,0.35)"/>
+      <!-- Overlap highlight -->
+      <circle cx="150" cy="80" r="25" fill="rgba(255,140,255,0.2)"/>
+      <!-- Center glow -->
+      <circle cx="150" cy="80" r="10" fill="rgba(255,200,255,0.3)"/>
+      <!-- Labels -->
+      <text x="90" y="85" fill="rgba(255,40,80,0.6)" font-family="-apple-system,sans-serif" font-size="10">R</text>
+      <text x="195" y="85" fill="rgba(20,100,255,0.6)" font-family="-apple-system,sans-serif" font-size="10">B</text>
+      <text x="142" y="85" fill="rgba(255,200,255,0.5)" font-family="-apple-system,sans-serif" font-size="10">R+B</text>
+    </svg>
+    <div class="figure-cap">Additive blending: overlapping colors become brighter, not darker. Where all colors meet, light approaches white.</div>
+  </div>
+
+  <p class="used-in">Used in: Neon1, Neon2, Neon3</p>
+
+  <div class="sep"></div>
+
+  <h2>Particle Systems</h2>
+  <h3>Simulating the Swarm</h3>
+  <p>A particle system is a collection of simple objects, each following its own rules: <em>position, velocity, lifetime</em>. No particle knows about the whole; the whole emerges from the parts. Snowflakes drift with sinusoidal wobble. Collision sparks fly outward and fade. Ripples expand and dissolve.</p>
+  <p>In Snow, three layers (far, mid, near) create depth. Each flake is rendered as a radial gradient &mdash; bright center fading to transparent edge &mdash; mimicking the <em>bokeh</em> of an out-of-focus camera lens. The math is trivial; the visual result is not.</p>
+
+  <div class="formula">x += v<sub>x</sub>, &nbsp;y += v<sub>y</sub>, &nbsp;age += dt, &nbsp;alpha = 1 &minus; age/lifetime</div>
+
+  <p class="used-in">Used in: Snow (3-layer flakes), Neon collision sparks, ripple effects</p>
+
+  <div class="sep"></div>
+
+  <h2>Double Buffering</h2>
+  <h3>Persistent Memory</h3>
+  <p>How do you make a trail that fades over 20 seconds on a canvas that redraws 60 times per second? You could store every past position &mdash; but that's thousands of points per skater. Instead, Neon1 and Neon2 use <em>double buffering</em>: two offscreen canvases (A and B) that take turns being the &ldquo;active&rdquo; surface.</p>
+  <p>Every 29 frames, buffer A is drawn onto buffer B with slight transparency (<code>alpha = 0.02</code>), then the active buffer swaps. The old trails fade by ~1/255 each cycle. After about 20 seconds, they vanish completely.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 400 120" width="400" height="120">
+      <!-- Buffer A -->
+      <rect x="20" y="20" width="100" height="60" rx="6" fill="none" stroke="rgba(255,100,100,0.4)" stroke-width="1.5"/>
+      <text x="50" y="55" fill="rgba(255,100,100,0.5)" font-family="-apple-system,sans-serif" font-size="12">Buffer A</text>
+      <!-- Arrow A→B -->
+      <line x1="130" y1="40" x2="170" y2="40" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+      <polygon points="170,36 178,40 170,44" fill="rgba(255,255,255,0.2)"/>
+      <text x="132" y="56" fill="rgba(255,255,255,0.15)" font-family="-apple-system,sans-serif" font-size="8">draw with</text>
+      <text x="132" y="65" fill="rgba(255,255,255,0.15)" font-family="-apple-system,sans-serif" font-size="8">alpha=0.02</text>
+      <!-- Buffer B -->
+      <rect x="180" y="20" width="100" height="60" rx="6" fill="none" stroke="rgba(100,100,255,0.4)" stroke-width="1.5"/>
+      <text x="210" y="55" fill="rgba(100,100,255,0.5)" font-family="-apple-system,sans-serif" font-size="12">Buffer B</text>
+      <!-- Swap arrow -->
+      <path d="M 280,50 Q 320,50 320,95 Q 320,110 280,110 L 120,110 Q 80,110 80,95 Q 80,80 80,70" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4,3"/>
+      <polygon points="76,70 80,62 84,70" fill="rgba(255,255,255,0.15)"/>
+      <text x="170" y="105" fill="rgba(255,255,255,0.15)" font-family="-apple-system,sans-serif" font-size="8">swap every 29 frames</text>
+    </svg>
+    <div class="figure-cap">Double-buffer fade cycle. Each swap slightly dims the old trails. After ~600 swaps (~20 sec), alpha reaches zero.</div>
+  </div>
+
+  <p>There is a subtle enemy: <em>8-bit quantization</em>. Canvas stores alpha as an integer 0&ndash;255. An alpha of 1/255 can never be reduced further by multiplication &mdash; it rounds back up to 1 and lingers forever as a ghost pixel. The 29-frame cadence with alpha=0.02 (which maps to ~5/255) is carefully tuned to step below this floor.</p>
+
+  <p class="used-in">Used in: Neon1, Neon2 (Neon3 uses permanent trails with manual erasing)</p>
+
+  <!-- ==================== JAPANESE ==================== -->
+
+  <div class="lang-divider">&middot;&middot;&middot;</div>
+
+  <h2>Noise</h2>
+  <h3>有機的な動きの基盤</h3>
+  <p>純粋なランダムはカオスです。すべての値が隣と無関係で、ちらつきとノイズだけが残ります。しかし自然はなめらかです &mdash; 風、波、炎のゆらめきはすべて連続的に変化します。<em>Perlin ノイズ</em>は 1983 年にケン・パーリンが映画『トロン』のために発明した手法で、空間と時間の中をなめらかに変化する擬似乱数値を生成します。このコレクションで最も重要なツールです。</p>
+  <p>原理はシンプルです。格子点にランダムな勾配を割り当て、その間を滑らかな曲線で補間します。結果は、予測不能でありながらジャンプしない信号です。異なるスケール（オクターブ）でサンプリングして足し合わせることで、大きなうねりの上に細かなさざ波が重なる、フラクタルな質感が得られます。</p>
+
+  <p class="used-in">使用作品: Waves, Aurora, Meadow, Clouds, Snow, Neon1, Neon2, Neon3</p>
+
+  <div class="sep"></div>
+
+  <h2>Sine Waves</h2>
+  <h3>自然界のリズム</h3>
+  <p>sin 波は最もシンプルな周期運動です &mdash; 振り子、弦の振動、月の公転を一軸に投影したもの。<em>振幅</em>（どれだけ高く）、<em>周波数</em>（どれだけ速く）、<em>位相</em>（どこから始まるか）の 3 つのパラメータで定義されます。</p>
+  <p>sin 波 1 つだけでは退屈です &mdash; 完全に規則的で、完全に予測可能。しかし異なる周波数の 2 つ目を足し、さらに 3 つ目を足すと、合成波形はずっと豊かになります。フーリエは「あらゆる形は sin 波に分解できる」ことを示しました。Waves では 120 層の sin + ノイズを重ね合わせて海を再現しています。</p>
+
+  <p class="used-in">使用作品: Waves (120 層), Snow (水平ドリフト), 風エフェクト</p>
+
+  <div class="sep"></div>
+
+  <h2>Domain Warping</h2>
+  <h3>空間を折り畳む</h3>
+  <p>ドメインワーピングは再帰的なトリックです。位置 (x, y) でノイズをサンプリングする代わりに、まずその位置自体を別のノイズ値で<em>ずらし</em>ます。入力座標そのものが流動的になるのです。</p>
+  <div class="formula">color = noise(x + noise(x, y, t)&middot;A, &nbsp;y + noise(x+5, y+5, t)&middot;A)</div>
+  <p>効果は劇的です。直線は S 字カーブになり、均一な領域が渦やカーテン状に折り畳まれます。振幅 <em>A</em> を大きくすると、オーロラや雲の形成に似たパターンが現れます &mdash; まさにこの作品群で使っている通りです。</p>
+
+  <p class="used-in">使用作品: Aurora, Meadow, Clouds</p>
+
+  <div class="sep"></div>
+
+  <h2>Smoothstep</h2>
+  <h3>やわらかい境界の技法</h3>
+  <p>現実世界では、境界はほとんどの場合くっきりしていません。雲に鮮明な輪郭はなく、昼が一瞬で夜に切り替わることもありません。<em>スムースステップ</em>関数は、0 と 1 の間の数学的に美しい遷移を提供します：</p>
+  <div class="formula">smoothstep(t) = t&sup2;(3 &minus; 2t)</div>
+  <p>t=0 で傾き 0（動き出しが穏やか）、t=1 でも傾き 0（止まり際が穏やか）。中間で滑らかに加速し、中点で最大速度に達し、減速します。この S 字カーブは至るところで使われています：雲の密度閾値、カラーテーマの遷移、フェードイン、ノイズの勾配補間そのものにも。</p>
+
+  <p class="used-in">使用作品: Clouds (密度閾値), 全作品 (テーマ遷移, ノイズ補間)</p>
+
+  <div class="sep"></div>
+
+  <h2>Curvature Physics</h2>
+  <h3>動きで描く</h3>
+  <p>Neon シリーズでは、形を画面にスタンプすることは一切ありません。形は<em>物体がどう動くか</em>から立ち現れます。核心的な洞察：物体の進行角度に毎フレーム定数を加算し続けると、それは円を描きます。その定数を変えれば、螺旋、8 の字、さまよう曲線になります。</p>
+  <div class="formula">angle += curvature &nbsp;&nbsp;&rarr;&nbsp;&nbsp; x += cos(angle) &middot; speed, &nbsp;y += sin(angle) &middot; speed</div>
+  <p>丸の軌道では曲率 &asymp; 0.03 rad/frame で半径 &asymp; 83px のループを描きます。三角は 50〜150px 直進した後 ~120&deg; の急旋回。四角は旋回角 90&deg;。形は「何を描くか」ではなく、<em>経路の物理法則</em>によって定義されます。</p>
+
+  <p class="used-in">使用作品: Neon1 (滑らかな曲線), Neon2 (三角形の経路), Neon3 (3 つの形すべて)</p>
+
+  <div class="sep"></div>
+
+  <h2>Additive Blending</h2>
+  <h3>数字から光へ</h3>
+  <p>物理世界では、光は足し算です。2 本の懐中電灯を同じ場所に当てれば、より明るくなります。デジタルスクリーンも同じ原理で動き、<code>lighter</code> コンポジットモードがこれを再現します：ピクセル値が加算され、白でクリップされます。</p>
+  <div class="formula">結果.r = min(255, a.r + b.r)</div>
+  <p>これが Neon の軌跡が光る理由です。各スケーターは薄い軌跡を残します（alpha &asymp; 0.05）。2 つの軌跡が交差すると光が倍になり、多くが収束する場所は白く燃えるように輝きます。ネオンの光は描かれたものではなく、加算の数学から<em>創発的に</em>現れる性質です。</p>
+
+  <p class="used-in">使用作品: Neon1, Neon2, Neon3</p>
+
+  <div class="sep"></div>
+
+  <h2>Particle Systems</h2>
+  <h3>群れのシミュレーション</h3>
+  <p>パーティクルシステムはシンプルなオブジェクトの集合体で、各個体は自分のルールに従います：<em>位置、速度、寿命</em>。個体は全体を知りません。全体は部分から立ち現れます。雪片は sin 波で揺らぎながら漂い、衝突スパークは外側に飛んで消え、リップルは拡大して溶けます。</p>
+  <p>Snow では 3 層（遠景・中景・近景）が被写界深度を作ります。各雪片は放射状グラデーション &mdash; 明るい中心から透明な縁へ &mdash; で描画され、ピントの合っていないカメラレンズの<em>ボケ</em>を再現しています。数学は簡素ですが、視覚的な結果はそうではありません。</p>
+
+  <div class="formula">x += v<sub>x</sub>, &nbsp;y += v<sub>y</sub>, &nbsp;age += dt, &nbsp;alpha = 1 &minus; age/lifetime</div>
+
+  <p class="used-in">使用作品: Snow (3 層の雪片), Neon 衝突スパーク, リップル</p>
+
+  <div class="sep"></div>
+
+  <h2>Double Buffering</h2>
+  <h3>記憶の持続</h3>
+  <p>60fps で再描画されるキャンバス上で、20 秒かけて消える残像をどう作るか？ 過去の全座標を記憶する方法もありますが、スケーター 1 体あたり数千ポイントになります。代わりに Neon1/2 では<em>ダブルバッファ方式</em>を使います：2 枚のオフスクリーンキャンバス（A と B）が交互に「アクティブ」面になります。</p>
+  <p>29 フレームごとに、バッファ A がわずかな透明度（<code>alpha = 0.02</code>）でバッファ B に描画され、アクティブバッファが入れ替わります。古い軌跡はサイクルごとに ~1/255 ずつ薄くなり、約 20 秒後に完全に消失します。</p>
+  <p>ここに微妙な敵がいます：<em>8 ビット量子化</em>。Canvas はアルファ値を 0〜255 の整数で保存します。alpha=1/255 のピクセルは、どれだけ乗算しても四捨五入で 1 に戻り、永遠にゴーストピクセルとして残ります。29 フレーム周期 × alpha=0.02（8 ビットで ~5/255）という設計は、この量子化の床を突破するために注意深く調整されています。</p>
+
+  <p class="used-in">使用作品: Neon1, Neon2 (Neon3 は永続トレイル＋手動消去)</p>
+
+  <script>
+  // Canvas demos with IntersectionObserver
+  (function() {
+    var vis = {};
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) { vis[e.target.id] = e.isIntersecting; });
+    }, { threshold: 0.1 });
+    ['cvNoise2D','cvWarp','cvCurve'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) { obs.observe(el); vis[id] = false; }
+    });
+
+    // Simple hash-based noise for demos
+    function hash(x, y) { var n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); }
+    function vnoise(x, y) {
+      var ix = Math.floor(x), iy = Math.floor(y);
+      var fx = x - ix, fy = y - iy;
+      fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+      var a = hash(ix, iy), b = hash(ix+1, iy), c = hash(ix, iy+1), d = hash(ix+1, iy+1);
+      return a + (b-a)*fx + (c-a)*fy + (a-b-c+d)*fx*fy;
+    }
+    function vnoise3(x, y, z) {
+      var iz = Math.floor(z), fz = z - iz; fz = fz * fz * (3 - 2 * fz);
+      return vnoise(x + iz * 17.3, y + iz * 31.7) * (1 - fz) + vnoise(x + (iz+1) * 17.3, y + (iz+1) * 31.7) * fz;
+    }
+
+    // --- 2D Noise Demo ---
+    var cn = document.getElementById('cvNoise2D');
+    if (cn) {
+      var ctx = cn.getContext('2d');
+      var W = cn.width, H = cn.height, tN = 0, dot = 4;
+      var cols = Math.ceil(W / dot), rows = Math.ceil(H / dot);
+      function drawNoise() {
+        requestAnimationFrame(drawNoise);
+        if (!vis['cvNoise2D']) return;
+        for (var r = 0; r < rows; r++) {
+          for (var c = 0; c < cols; c++) {
+            var v = vnoise3(c * 0.06, r * 0.06, tN * 0.3);
+            var b = Math.floor(v * 180 + 30);
+            ctx.fillStyle = 'rgb(' + Math.floor(b*0.3) + ',' + Math.floor(b*0.5) + ',' + b + ')';
+            ctx.fillRect(c * dot, r * dot, dot, dot);
+          }
+        }
+        tN += 0.008;
+      }
+      drawNoise();
+    }
+
+    // --- Domain Warping Demo ---
+    var cw = document.getElementById('cvWarp');
+    if (cw) {
+      var ctxW = cw.getContext('2d');
+      var WW = cw.width, WH = cw.height, tW = 0;
+      var spacing = 16, half = WW / 2;
+      function drawWarp() {
+        requestAnimationFrame(drawWarp);
+        if (!vis['cvWarp']) return;
+        ctxW.fillStyle = '#000';
+        ctxW.fillRect(0, 0, WW, WH);
+        for (var gy = spacing; gy < WH; gy += spacing) {
+          for (var gx = spacing; gx < WW; gx += spacing) {
+            var isRight = gx > half;
+            var bx = isRight ? gx - half : gx;
+            var dx = 0, dy = 0;
+            if (isRight) {
+              dx = (vnoise3(bx * 0.008, gy * 0.008, tW * 0.3) - 0.5) * 50;
+              dy = (vnoise3(bx * 0.008 + 5, gy * 0.008 + 5, tW * 0.3) - 0.5) * 50;
+            }
+            var px = gx + dx, py = gy + dy;
+            var a = isRight ? 0.5 : 0.2;
+            ctxW.fillStyle = 'rgba(100,180,255,' + a + ')';
+            ctxW.fillRect(px - 1, py - 1, 2, 2);
+          }
+        }
+        // Divider
+        ctxW.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctxW.beginPath(); ctxW.moveTo(half, 0); ctxW.lineTo(half, WH); ctxW.stroke();
+        ctxW.fillStyle = 'rgba(255,255,255,0.15)';
+        ctxW.font = '10px -apple-system,sans-serif';
+        ctxW.fillText('regular', 20, 15);
+        ctxW.fillText('warped', half + 20, 15);
+        tW += 0.008;
+      }
+      drawWarp();
+    }
+
+    // --- Curvature Demo ---
+    var cc = document.getElementById('cvCurve');
+    if (cc) {
+      var ctxC = cc.getContext('2d');
+      var CW = cc.width, CH = cc.height;
+      // Three skaters with different curvature modes
+      var skaters = [
+        { x: CW*0.17, y: CH*0.5, angle: 0, col: 'rgba(255,60,90,', label: 'circle', curv: 0.04, segDist: 0, turning: 0, turnDir: 1 },
+        { x: CW*0.5, y: CH*0.5, angle: 0, col: 'rgba(60,140,255,', label: 'triangle', curv: 0, segDist: 0, turning: 0, turnDir: 1, segLen: 40 },
+        { x: CW*0.83, y: CH*0.5, angle: 0, col: 'rgba(255,220,140,', label: 'square', curv: 0, segDist: 0, turning: 0, turnDir: 1, segLen: 35 }
+      ];
+      var spd = 0.8, tC = 0;
+      var TWO_THIRDS = 2.0943951;
+      function drawCurv() {
+        requestAnimationFrame(drawCurv);
+        if (!vis['cvCurve']) return;
+        ctxC.fillStyle = 'rgba(0,0,0,0.03)';
+        ctxC.fillRect(0, 0, CW, CH);
+        ctxC.globalCompositeOperation = 'lighter';
+        for (var i = 0; i < 3; i++) {
+          var s = skaters[i];
+          var px = s.x, py = s.y;
+          var cx = CW * (0.17 + i * 0.33), cy = CH * 0.5;
+          if (i === 0) {
+            // Circle: constant curvature
+            s.angle += 0.04 * s.turnDir;
+          } else if (i === 1) {
+            // Triangle: straight + 120 turn
+            if (s.turning > 0) {
+              var step = Math.min(0.12, s.turning);
+              s.angle += step * s.turnDir;
+              s.turning -= step;
+            } else {
+              s.segDist += spd;
+              if (s.segDist >= s.segLen) {
+                s.segDist = 0;
+                s.segLen = 35 + Math.random() * 25;
+                s.turning = TWO_THIRDS;
+                if (Math.random() < 0.3) s.turnDir *= -1;
+              }
+            }
+          } else {
+            // Square: straight + 90 turn
+            if (s.turning > 0) {
+              var step = Math.min(0.12, s.turning);
+              s.angle += step * s.turnDir;
+              s.turning -= step;
+            } else {
+              s.segDist += spd;
+              if (s.segDist >= s.segLen) {
+                s.segDist = 0;
+                s.segLen = 30 + Math.random() * 20;
+                s.turning = Math.PI / 2;
+                if (Math.random() < 0.3) s.turnDir *= -1;
+              }
+            }
+          }
+          s.x += Math.cos(s.angle) * spd;
+          s.y += Math.sin(s.angle) * spd;
+          // Soft centering
+          var ex = (s.x - cx) / (CW * 0.15);
+          var ey = (s.y - cy) / (CH * 0.45);
+          var edge = Math.sqrt(ex*ex + ey*ey);
+          if (edge > 0.7) {
+            var da = Math.atan2(cy - s.y, cx - s.x) - s.angle;
+            while (da > Math.PI) da -= Math.PI * 2;
+            while (da < -Math.PI) da += Math.PI * 2;
+            s.angle += da * (edge - 0.7) * 0.3;
+            if (i > 0) { s.turning = 0; s.segDist = 0; }
+          }
+          // Draw trail
+          ctxC.strokeStyle = s.col + '0.15)';
+          ctxC.lineWidth = 1.5;
+          ctxC.beginPath(); ctxC.moveTo(px, py); ctxC.lineTo(s.x, s.y); ctxC.stroke();
+          // Head
+          ctxC.fillStyle = s.col + '0.6)';
+          ctxC.beginPath(); ctxC.arc(s.x, s.y, 2, 0, Math.PI * 2); ctxC.fill();
+        }
+        ctxC.globalCompositeOperation = 'source-over';
+        // Labels
+        ctxC.fillStyle = 'rgba(255,255,255,0.2)';
+        ctxC.font = '10px -apple-system,sans-serif';
+        ctxC.fillText('circle', CW*0.12, 15);
+        ctxC.fillText('triangle', CW*0.44, 15);
+        ctxC.fillText('square', CW*0.78, 15);
+        tC += 0.008;
+      }
+      drawCurv();
+    }
+  })();
+  </script>
+</body>
+</html>
