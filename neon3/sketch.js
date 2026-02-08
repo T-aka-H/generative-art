@@ -170,21 +170,21 @@ function updateSkater(idx) {
 
   if (s.shape === 'circle') {
     // === Circle: continuous curvature → circular loops with drift ===
-    // Base curvature ~0.04 → radius ~62px, noise reduced for clean circles
+    // Base curvature ~0.03 → radius ~83px, with organic wobble
     var n1 = noise(s.seed, t * 0.04) - 0.5;
-    var targetCurv = 0.04 * s.turnDir + n1 * 0.01;
+    var targetCurv = 0.03 * s.turnDir + n1 * 0.02;
     s.curvature = lerp(s.curvature, targetCurv, 0.04);
     s.angle += s.curvature;
 
-    // Slow drift — shifts loop center across screen over time
-    var drift = (noise(s.seed + 99, t * 0.008) - 0.5) * 0.008;
+    // Drift — shifts loop center across screen over time
+    var drift = (noise(s.seed + 99, t * 0.008) - 0.5) * 0.012;
     s.angle += drift;
 
     s.speed = lerp(s.speed, s.baseSpeed, 0.05);
 
-    // Reverse direction every 2-3 loops (~300-500px)
+    // Reverse direction every 1-2 loops (~400-700px)
     s.segDist += s.speed;
-    if (s.segDist > 300 + noise(s.seed + 600, t * 0.05) * 200) {
+    if (s.segDist > 400 + noise(s.seed + 600, t * 0.05) * 300) {
       s.segDist = 0;
       if (random() < 0.5) s.turnDir *= -1;
     }
@@ -259,15 +259,26 @@ function updateSkater(idx) {
   var ex = abs(s.x - width / 2) / (width / 2);
   var ey = abs(s.y - height / 2) / (height / 2);
   var edge = max(ex, ey);
-  if (edge > 0.85) {
+
+  if (s.shape === 'circle') {
+    // Soft centering: continuous pull toward center, no hard threshold
+    // Quadratic: negligible near center, strong near edges
     var diff = atan2(height / 2 - s.y, width / 2 - s.x) - s.angle;
     while (diff > PI) diff -= TWO_PI;
     while (diff < -PI) diff += TWO_PI;
-    s.angle += diff * (edge - 0.85) * 0.3;
-    // Cancel any turn and start a fresh segment toward center
-    s.turning = 0;
-    s.segDist = 0;
-    s.segLen = 60 + random(80);
+    s.angle += diff * edge * edge * 0.06;
+    s.curvature *= (1 - edge * edge * 0.15);
+  } else {
+    // Hard threshold for triangle/square (straight segments handle it fine)
+    if (edge > 0.85) {
+      var diff = atan2(height / 2 - s.y, width / 2 - s.x) - s.angle;
+      while (diff > PI) diff -= TWO_PI;
+      while (diff < -PI) diff += TWO_PI;
+      s.angle += diff * (edge - 0.85) * 0.3;
+      s.turning = 0;
+      s.segDist = 0;
+      s.segLen = 60 + random(80);
+    }
   }
 }
 

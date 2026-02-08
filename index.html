@@ -818,17 +818,17 @@
 
         // Shape-dependent trajectory physics
         if (s.shape === 'circle') {
-          // Circular loops with drift (curvature ~0.04 → radius ~22px at preview scale)
+          // Circular loops with organic wobble (curvature ~0.03 + noise)
           var n1 = snoise(s.seed, tN3 * 0.04) - 0.5;
-          var tc = 0.04 * s.turnDir + n1 * 0.01;
+          var tc = 0.03 * s.turnDir + n1 * 0.02;
           s.curv += (tc - s.curv) * 0.04;
           s.angle += s.curv;
-          // Slow drift shifts loop center across screen
-          var drift = (snoise(s.seed + 99, tN3 * 0.008) - 0.5) * 0.008;
+          // Drift shifts loop center across screen
+          var drift = (snoise(s.seed + 99, tN3 * 0.008) - 0.5) * 0.012;
           s.angle += drift;
           s.spd += (s.bspd - s.spd) * 0.05;
           s.segDist += s.spd;
-          if (s.segDist > 150 + snoise(s.seed + 600, tN3 * 0.05) * 100) {
+          if (s.segDist > 200 + snoise(s.seed + 600, tN3 * 0.05) * 150) {
             s.segDist = 0;
             if (Math.random() < 0.5) s.turnDir *= -1;
           }
@@ -860,7 +860,14 @@
         var ex = Math.abs(s.x - N3W / 2) / (N3W / 2);
         var ey = Math.abs(s.y - N3H / 2) / (N3H / 2);
         var edge = Math.max(ex, ey);
-        if (edge > 0.8) {
+        if (s.shape === 'circle') {
+          // Soft centering: continuous quadratic pull, no hard threshold
+          var da = Math.atan2(N3H / 2 - s.y, N3W / 2 - s.x) - s.angle;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          s.angle += da * edge * edge * 0.06;
+          s.curv *= (1 - edge * edge * 0.15);
+        } else if (edge > 0.8) {
           var da = Math.atan2(N3H / 2 - s.y, N3W / 2 - s.x) - s.angle;
           while (da > Math.PI) da -= Math.PI * 2;
           while (da < -Math.PI) da += Math.PI * 2;
