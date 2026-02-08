@@ -102,64 +102,55 @@
       .work-title { font-size: 16px; letter-spacing: 6px; }
       .work-sub { font-size: 10px; }
     }
-    /* Loading overlay — pure CSS, renders before JS */
+    /* Branding splash — white, matches native iOS */
     #loadingOverlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: #000;
+      background: #fff;
       z-index: 9999;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
-      transition: opacity 0.8s ease;
+      transition: opacity 1.2s ease-in;
     }
     #loadingOverlay.fade-out {
       opacity: 0;
       pointer-events: none;
     }
-    .loading-title {
-      font-size: 14px;
+    .branding-title {
+      font-size: 20px;
       font-weight: 400;
-      letter-spacing: 10px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.35);
+      letter-spacing: 12px;
+      color: #000;
       font-family: Georgia, 'Times New Roman', serif;
-      animation: loadPulse 2s ease-in-out infinite;
+      opacity: 0;
+      animation: brandFadeIn 1.0s 0.3s ease-out forwards;
     }
-    .loading-line {
-      width: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
-      margin: 24px auto 0;
-      animation: loadExpand 1.8s ease-out forwards;
+    .branding-sub {
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 6px;
+      color: #000;
+      font-family: Georgia, 'Times New Roman', serif;
+      margin-top: 12px;
+      opacity: 0;
+      animation: brandSubFadeIn 1.0s 0.8s ease-out forwards;
     }
-    .loading-dot {
-      width: 4px; height: 4px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.15);
-      margin: 16px auto 0;
-      animation: loadDot 1.2s ease-in-out infinite;
+    @keyframes brandFadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
     }
-    @keyframes loadPulse {
-      0%, 100% { opacity: 0.25; }
-      50% { opacity: 0.6; }
-    }
-    @keyframes loadExpand {
-      0% { width: 0; }
-      100% { width: 100px; }
-    }
-    @keyframes loadDot {
-      0%, 100% { opacity: 0.1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.5); }
+    @keyframes brandSubFadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 0.35; }
     }
   </style>
 </head>
 <body>
   <div id="loadingOverlay">
-    <div class="loading-title">Art-go-rhythm</div>
-    <div class="loading-line"></div>
-    <div class="loading-dot"></div>
+    <div class="branding-title">ART-GO-RHYTHM</div>
+    <div class="branding-sub" style="opacity:0">a.g.r</div>
   </div>
   <header>
     <h1>ART-GO-RHYTHM</h1>
@@ -275,7 +266,7 @@
   </footer>
 
   <script>
-  // === Loading overlay ===
+  // === Branding splash — 3 seconds then fade ===
   var _loadingDone = false;
   function dismissLoading() {
     if (_loadingDone) return;
@@ -283,10 +274,10 @@
     var ov = document.getElementById('loadingOverlay');
     if (ov) {
       ov.classList.add('fade-out');
-      setTimeout(function() { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 900);
+      setTimeout(function() { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 1300);
     }
   }
-  setTimeout(dismissLoading, 2000);
+  setTimeout(dismissLoading, 3000);
 
   // === Noise utilities ===
   function hash2(ix,iy){var n=Math.sin(ix*127.1+iy*311.7)*43758.5453;return n-Math.floor(n)}
