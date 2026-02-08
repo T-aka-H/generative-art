@@ -260,7 +260,7 @@
     <div class="figure-cap">Three curvature regimes: constant (circle), 120&deg; turns (triangle), 90&deg; turns (square).</div>
   </div>
 
-  <p class="used-in">Used in: Neon1 (smooth curves), Neon2 (triangular paths), Neon3 (all three shapes)</p>
+  <p class="used-in">Used in: Neon1 (smooth curves), Neon2 (triangular paths), Neon3 (all three shapes), Neon4 (square grid)</p>
 
   <div class="sep"></div>
 
@@ -288,7 +288,7 @@
     <div class="figure-cap">Additive blending: overlapping colors become brighter, not darker. Where all colors meet, light approaches white.</div>
   </div>
 
-  <p class="used-in">Used in: Neon1, Neon2, Neon3</p>
+  <p class="used-in">Used in: Neon1, Neon2, Neon3, Neon4, Neon5, Neon6</p>
 
   <div class="sep"></div>
 
@@ -299,7 +299,7 @@
 
   <div class="formula">x += v<sub>x</sub>, &nbsp;y += v<sub>y</sub>, &nbsp;age += dt, &nbsp;alpha = 1 &minus; age/lifetime</div>
 
-  <p class="used-in">Used in: Snow (3-layer flakes), Neon collision sparks, ripple effects</p>
+  <p class="used-in">Used in: Snow (3-layer flakes), Neon collision sparks and ripples</p>
 
   <div class="sep"></div>
 
@@ -332,6 +332,41 @@
   <p>There is a subtle enemy: <em>8-bit quantization</em>. Canvas stores alpha as an integer 0&ndash;255. An alpha of 1/255 can never be reduced further by multiplication &mdash; it rounds back up to 1 and lingers forever as a ghost pixel. The 29-frame cadence with alpha=0.02 (which maps to ~5/255) is carefully tuned to step below this floor.</p>
 
   <p class="used-in">Used in: Neon1, Neon2 (Neon3 uses permanent trails with manual erasing)</p>
+
+  <div class="sep"></div>
+
+  <h2>Wave Trajectories</h2>
+  <h3>Riding Trigonometric Functions</h3>
+  <p>In Neon5, skaters don&rsquo;t follow curvature rules. Instead, they ride <em>trigonometric wave functions</em>. Each skater advances along a drifting baseline direction while oscillating laterally by an amount determined by its wave function: sin, cos, or sin(2&times;phase).</p>
+  <div class="formula">lateral = amplitude &middot; waveFunc(phase)<br>position = baseline + perpendicular &middot; lateral</div>
+  <p>The baseline angle drifts with Perlin noise, so the wave doesn&rsquo;t march in a straight line forever &mdash; it meanders. The phase advances proportionally to speed, so faster motion means tighter waves. Pac-Man wrapping ensures the waves flow continuously across the screen.</p>
+
+  <div class="figure">
+    <canvas id="cvTrigWave" width="500" height="200"></canvas>
+    <div class="figure-cap">Three wave types: sin (smooth), cos (phase-shifted), sin2 (double frequency). Each defines a distinct visual rhythm.</div>
+  </div>
+
+  <p class="used-in">Used in: Neon5 (sin, cos, sin2 trajectories)</p>
+
+  <div class="sep"></div>
+
+  <h2>Kepler Orbits</h2>
+  <h3>The Mathematics of Planetary Motion</h3>
+  <p>In Neon6, three skaters orbit the screen center following <em>Kepler&rsquo;s laws of planetary motion</em>. Each orbit is an ellipse with one focus at the center, defined by a semi-major axis <em>a</em> and eccentricity <em>e</em>.</p>
+  <p>The challenge is that objects on elliptical orbits don&rsquo;t move at constant speed &mdash; they accelerate near the focus and slow down at the far end. Kepler captured this in his equation:</p>
+  <div class="formula">M = E &minus; e &middot; sin(E)</div>
+  <p>where <em>M</em> is the mean anomaly (time progressing uniformly) and <em>E</em> is the eccentric anomaly (actual position on the ellipse). This transcendental equation has no closed-form solution, so we solve it numerically using <em>Newton&rsquo;s method</em>:</p>
+  <div class="formula">E<sub>n+1</sub> = E<sub>n</sub> &minus; (E<sub>n</sub> &minus; e&middot;sin(E<sub>n</sub>) &minus; M) / (1 &minus; e&middot;cos(E<sub>n</sub>))</div>
+  <p>Ten iterations suffice for convergence to 10<sup>&minus;8</sup> precision. From <em>E</em>, the position on the ellipse is:</p>
+  <div class="formula">x = a(cos(E) &minus; e), &nbsp;&nbsp;y = b&middot;sin(E) &nbsp;&nbsp;where b = a&radic;(1 &minus; e&sup2;)</div>
+  <p>Finally, the orbit plane is rotated by a tilt angle to create the visual diversity of intersecting orbital paths. Slow <em>precession</em> (tilt drift) makes the orbits evolve over time, just as Mercury&rsquo;s orbit precesses in reality.</p>
+
+  <div class="figure">
+    <canvas id="cvKepler" width="500" height="250"></canvas>
+    <div class="figure-cap">Three orbit types: circular (e&asymp;0), elliptical (e=0.5), cometary (e=0.8). Higher eccentricity means more elongated paths.</div>
+  </div>
+
+  <p class="used-in">Used in: Neon6 (circular, elliptical, comet orbits)</p>
 
   <!-- ==================== JAPANESE ==================== -->
 
@@ -381,7 +416,7 @@
   <div class="formula">angle += curvature &nbsp;&nbsp;&rarr;&nbsp;&nbsp; x += cos(angle) &middot; speed, &nbsp;y += sin(angle) &middot; speed</div>
   <p>丸の軌道では曲率 &asymp; 0.03 rad/frame で半径 &asymp; 83px のループを描きます。三角は 50〜150px 直進した後 ~120&deg; の急旋回。四角は旋回角 90&deg;。形は「何を描くか」ではなく、<em>経路の物理法則</em>によって定義されます。</p>
 
-  <p class="used-in">使用作品: Neon1 (滑らかな曲線), Neon2 (三角形の経路), Neon3 (3 つの形すべて)</p>
+  <p class="used-in">使用作品: Neon1 (滑らかな曲線), Neon2 (三角形の経路), Neon3 (3 つの形すべて), Neon4 (グリッド格子)</p>
 
   <div class="sep"></div>
 
@@ -391,7 +426,7 @@
   <div class="formula">結果.r = min(255, a.r + b.r)</div>
   <p>これが Neon の軌跡が光る理由です。各スケーターは薄い軌跡を残します（alpha &asymp; 0.05）。2 つの軌跡が交差すると光が倍になり、多くが収束する場所は白く燃えるように輝きます。ネオンの光は描かれたものではなく、加算の数学から<em>創発的に</em>現れる性質です。</p>
 
-  <p class="used-in">使用作品: Neon1, Neon2, Neon3</p>
+  <p class="used-in">使用作品: Neon1, Neon2, Neon3, Neon4, Neon5, Neon6</p>
 
   <div class="sep"></div>
 
@@ -402,7 +437,7 @@
 
   <div class="formula">x += v<sub>x</sub>, &nbsp;y += v<sub>y</sub>, &nbsp;age += dt, &nbsp;alpha = 1 &minus; age/lifetime</div>
 
-  <p class="used-in">使用作品: Snow (3 層の雪片), Neon 衝突スパーク, リップル</p>
+  <p class="used-in">使用作品: Snow (3 層の雪片), Neon 衝突スパーク、リップル</p>
 
   <div class="sep"></div>
 
@@ -414,6 +449,41 @@
 
   <p class="used-in">使用作品: Neon1, Neon2 (Neon3 は永続トレイル＋手動消去)</p>
 
+  <div class="sep"></div>
+
+  <h2>Wave Trajectories</h2>
+  <h3>三角関数に乗る</h3>
+  <p>Neon5 では、スケーターは曲率ルールに従いません。代わりに<em>三角関数の波形</em>に乗ります。各スケーターはドリフトするベースライン方向に沿って進みながら、波形関数（sin、cos、sin(2&times;phase)）で決まる量だけ横方向にオフセットします。</p>
+  <div class="formula">横方向オフセット = 振幅 &middot; waveFunc(phase)<br>位置 = ベースライン + 垂直方向 &middot; オフセット</div>
+  <p>ベースライン角度は Perlin ノイズでドリフトするため、波は直線的に進むのではなくゆるやかに蛇行します。位相はスピードに比例して進むため、速い動きは細かい波を、遅い動きは大きな波を描きます。Pac-Man ラップにより、波は途切れることなく画面を横断し続けます。</p>
+
+  <div class="figure">
+    <canvas id="cvTrigWaveJa" width="500" height="200"></canvas>
+    <div class="figure-cap">3 つの波形: sin（滑らか）、cos（位相シフト）、sin2（倍周波数）。それぞれが異なる視覚的リズムを定義します。</div>
+  </div>
+
+  <p class="used-in">使用作品: Neon5 (sin, cos, sin2 軌道)</p>
+
+  <div class="sep"></div>
+
+  <h2>Kepler Orbits</h2>
+  <h3>惑星運動の数学</h3>
+  <p>Neon6 では、3 体のスケーターが<em>ケプラーの惑星運動の法則</em>に従って画面中央を周回します。各軌道は中心に焦点を持つ楕円で、半長軸 <em>a</em> と離心率 <em>e</em> で定義されます。</p>
+  <p>楕円軌道上の物体は等速で動きません &mdash; 焦点近くで加速し、遠端で減速します。ケプラーはこれを方程式で捉えました：</p>
+  <div class="formula">M = E &minus; e &middot; sin(E)</div>
+  <p><em>M</em> は平均近点角（時間が一様に進む）、<em>E</em> は離心近点角（楕円上の実際の位置）です。この超越方程式には解析解がないため、<em>ニュートン法</em>で数値的に解きます：</p>
+  <div class="formula">E<sub>n+1</sub> = E<sub>n</sub> &minus; (E<sub>n</sub> &minus; e&middot;sin(E<sub>n</sub>) &minus; M) / (1 &minus; e&middot;cos(E<sub>n</sub>))</div>
+  <p>10 回の反復で 10<sup>&minus;8</sup> の精度に収束します。<em>E</em> から楕円上の位置は：</p>
+  <div class="formula">x = a(cos(E) &minus; e), &nbsp;&nbsp;y = b&middot;sin(E) &nbsp;&nbsp;ここで b = a&radic;(1 &minus; e&sup2;)</div>
+  <p>最後に、軌道面を傾き角で回転させ、交差する軌道パスの視覚的多様性を生みます。ゆっくりとした<em>歳差運動</em>（傾きのドリフト）により、軌道は時間とともに変化していきます。実際の水星の軌道が歳差するのと同じ原理です。</p>
+
+  <div class="figure">
+    <canvas id="cvKeplerJa" width="500" height="250"></canvas>
+    <div class="figure-cap">3 つの軌道タイプ: 円形 (e&asymp;0)、楕円 (e=0.5)、彗星 (e=0.8)。離心率が高いほど細長い軌道になります。</div>
+  </div>
+
+  <p class="used-in">使用作品: Neon6 (円、楕円、彗星軌道)</p>
+
   <script>
   // Canvas demos with IntersectionObserver
   (function() {
@@ -421,7 +491,7 @@
     var obs = new IntersectionObserver(function(entries) {
       entries.forEach(function(e) { vis[e.target.id] = e.isIntersecting; });
     }, { threshold: 0.1 });
-    ['cvNoise2D','cvWarp','cvCurve'].forEach(function(id) {
+    ['cvNoise2D','cvWarp','cvCurve','cvTrigWave','cvTrigWaveJa','cvKepler','cvKeplerJa'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) { obs.observe(el); vis[id] = false; }
     });
@@ -589,6 +659,144 @@
       }
       drawCurv();
     }
+
+    // --- Trig Wave Demo ---
+    function initTrigWave(canvasId) {
+      var ct = document.getElementById(canvasId);
+      if (!ct) return;
+      var ctx = ct.getContext('2d');
+      var W = ct.width, H = ct.height, tTW = 0;
+      var waves = [
+        { fn: Math.sin, col: 'rgba(255,60,90,', label: 'sin', yOff: 0 },
+        { fn: Math.cos, col: 'rgba(60,140,255,', label: 'cos', yOff: 0 },
+        { fn: function(p) { return Math.sin(p * 2); }, col: 'rgba(255,220,140,', label: 'sin2', yOff: 0 }
+      ];
+      waves[0].yOff = H * 0.25; waves[1].yOff = H * 0.5; waves[2].yOff = H * 0.75;
+      function drawTW() {
+        requestAnimationFrame(drawTW);
+        if (!vis[canvasId]) return;
+        ctx.fillStyle = 'rgba(0,0,0,0.05)';
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'lighter';
+        for (var wi = 0; wi < 3; wi++) {
+          var w = waves[wi];
+          ctx.strokeStyle = w.col + '0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          for (var x = 0; x < W; x += 2) {
+            var phase = x * 0.04 + tTW * 0.8;
+            var y = w.yOff + w.fn(phase) * (H * 0.18);
+            if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+          // Moving head
+          var hx = ((tTW * 40) % W);
+          var hp = hx * 0.04 + tTW * 0.8;
+          var hy = w.yOff + w.fn(hp) * (H * 0.18);
+          ctx.fillStyle = w.col + '0.8)';
+          ctx.beginPath(); ctx.arc(hx, hy, 3, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.font = '10px -apple-system,sans-serif';
+        ctx.fillText('sin', 10, H * 0.25 - 25);
+        ctx.fillText('cos', 10, H * 0.5 - 25);
+        ctx.fillText('sin2', 10, H * 0.75 - 25);
+        tTW += 0.008;
+      }
+      drawTW();
+    }
+    initTrigWave('cvTrigWave');
+    initTrigWave('cvTrigWaveJa');
+
+    // --- Kepler Orbit Demo ---
+    function initKepler(canvasId) {
+      var ck = document.getElementById(canvasId);
+      if (!ck) return;
+      var ctxK = ck.getContext('2d');
+      var KW = ck.width, KH = ck.height, tK = 0;
+      var orbits = [
+        { e: 0.05, a: 0.35, period: 300, col: 'rgba(255,60,90,', label: 'e\u22480 (circular)', tilt: 0 },
+        { e: 0.50, a: 0.30, period: 250, col: 'rgba(60,140,255,', label: 'e=0.5 (elliptical)', tilt: 0.4 },
+        { e: 0.80, a: 0.40, period: 400, col: 'rgba(255,220,140,', label: 'e=0.8 (comet)', tilt: -0.3 }
+      ];
+      function solveK(M, e) {
+        var E = M;
+        for (var i = 0; i < 10; i++) {
+          var dE = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+          E -= dE;
+          if (Math.abs(dE) < 1e-8) break;
+        }
+        return E;
+      }
+      function drawKepler() {
+        requestAnimationFrame(drawKepler);
+        if (!vis[canvasId]) return;
+        ctxK.fillStyle = 'rgba(0,0,0,0.04)';
+        ctxK.fillRect(0, 0, KW, KH);
+        var cx = KW * 0.5, cy = KH * 0.5;
+        ctxK.globalCompositeOperation = 'lighter';
+        for (var oi = 0; oi < 3; oi++) {
+          var o = orbits[oi];
+          var scale = Math.min(KW, KH) * 0.5;
+          var a = o.a * scale;
+          var e = o.e;
+          var b = a * Math.sqrt(1 - e * e);
+          // Draw orbit path (faint)
+          ctxK.strokeStyle = o.col + '0.08)';
+          ctxK.lineWidth = 1;
+          ctxK.beginPath();
+          for (var step = 0; step <= 64; step++) {
+            var M = step * Math.PI * 2 / 64;
+            var E = solveK(M, e);
+            var ox = a * (Math.cos(E) - e);
+            var oy = b * Math.sin(E);
+            var ct2 = Math.cos(o.tilt), st2 = Math.sin(o.tilt);
+            var rx = ox * ct2 - oy * st2;
+            var ry = ox * st2 + oy * ct2;
+            if (step === 0) ctxK.moveTo(cx + rx, cy + ry);
+            else ctxK.lineTo(cx + rx, cy + ry);
+          }
+          ctxK.closePath();
+          ctxK.stroke();
+          // Current position
+          var M2 = (tK * Math.PI * 2 / o.period) % (Math.PI * 2);
+          var E2 = solveK(M2, e);
+          var ox2 = a * (Math.cos(E2) - e);
+          var oy2 = b * Math.sin(E2);
+          var ct3 = Math.cos(o.tilt), st3 = Math.sin(o.tilt);
+          var px = cx + ox2 * ct3 - oy2 * st3;
+          var py = cy + ox2 * st3 + oy2 * ct3;
+          // Trail segment
+          var M3 = ((tK - 1) * Math.PI * 2 / o.period) % (Math.PI * 2);
+          var E3 = solveK(M3, e);
+          var ox3 = a * (Math.cos(E3) - e);
+          var oy3 = b * Math.sin(E3);
+          var ppx = cx + ox3 * ct3 - oy3 * st3;
+          var ppy = cy + ox3 * st3 + oy3 * ct3;
+          ctxK.strokeStyle = o.col + '0.3)';
+          ctxK.lineWidth = 2;
+          ctxK.beginPath(); ctxK.moveTo(ppx, ppy); ctxK.lineTo(px, py); ctxK.stroke();
+          // Head
+          ctxK.fillStyle = o.col + '0.8)';
+          ctxK.beginPath(); ctxK.arc(px, py, 3, 0, Math.PI * 2); ctxK.fill();
+        }
+        // Focus dot
+        ctxK.fillStyle = 'rgba(255,255,255,0.3)';
+        ctxK.beginPath(); ctxK.arc(cx, cy, 2, 0, Math.PI * 2); ctxK.fill();
+        ctxK.globalCompositeOperation = 'source-over';
+        // Labels
+        ctxK.fillStyle = 'rgba(255,255,255,0.2)';
+        ctxK.font = '10px -apple-system,sans-serif';
+        for (var li = 0; li < 3; li++) {
+          ctxK.fillText(orbits[li].label, 10, 15 + li * 14);
+        }
+        tK++;
+      }
+      drawKepler();
+    }
+    initKepler('cvKepler');
+    initKepler('cvKeplerJa');
   })();
   </script>
 </body>

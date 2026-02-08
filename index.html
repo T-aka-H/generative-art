@@ -238,6 +238,33 @@
         <span class="work-sub">Shape Shifting</span>
       </div>
     </a>
+    <a href="./neon4/index.html" class="work">
+      <div class="work-preview">
+        <canvas id="cvNeon4"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Neon4</span>
+        <span class="work-sub">Grid Light</span>
+      </div>
+    </a>
+    <a href="./neon5/index.html" class="work">
+      <div class="work-preview">
+        <canvas id="cvNeon5"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Neon5</span>
+        <span class="work-sub">Trig Waves</span>
+      </div>
+    </a>
+    <a href="./neon6/index.html" class="work">
+      <div class="work-preview">
+        <canvas id="cvNeon6"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Neon6</span>
+        <span class="work-sub">Orbital</span>
+      </div>
+    </a>
   </div>
   <div style="text-align:center;padding:0 0 20px">
     <a href="./math.html" style="display:inline-block;color:rgba(255,255,255,0.18);text-decoration:none;font-size:10px;letter-spacing:3px;font-family:-apple-system,sans-serif;transition:color 0.3s" onmouseover="this.style.color='rgba(255,255,255,0.45)'" onmouseout="this.style.color='rgba(255,255,255,0.18)'">THE MATH BEHIND</a>
@@ -270,7 +297,7 @@
       entries.forEach(function(e) { visMap[e.target.id] = e.isIntersecting; });
       dismissLoading();
     }, { threshold: 0.1 });
-    ['cvWaves','cvAurora','cvMeadow','cvClouds','cvSnow','cvNeon','cvNeon2','cvNeon3'].forEach(function(id) {
+    ['cvWaves','cvAurora','cvMeadow','cvClouds','cvSnow','cvNeon','cvNeon2','cvNeon3','cvNeon4','cvNeon5','cvNeon6'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) { observer.observe(el); visMap[id] = false; }
     });
@@ -903,6 +930,384 @@
     }
     drawNeon3();
   })();
+
+    // --- Neon4 プレビュー（5スケーター + 90°ターン + 衝突色変化）---
+    (function() {
+    var cn4 = document.getElementById('cvNeon4');
+    if (!cn4) return;
+    var ctx4 = cn4.getContext('2d');
+    var N4W = cn4.width = 400, N4H = cn4.height = 225;
+    var tN4 = 0;
+    var N4_TURN_SPD = 0.12;
+
+    function n4Wake(tx, ty, hx, hy, hw, ang) {
+      var pa = ang + Math.PI / 2;
+      var cp = Math.cos(pa), sp = Math.sin(pa);
+      ctx4.beginPath();
+      ctx4.moveTo(tx, ty);
+      ctx4.lineTo(hx + hw * cp, hy + hw * sp);
+      ctx4.lineTo(hx - hw * cp, hy - hw * sp);
+      ctx4.closePath();
+    }
+    function n4Sq(cx, cy, r, ang) {
+      var c = Math.cos(ang), s = Math.sin(ang), hr = r * 0.707;
+      ctx4.beginPath();
+      ctx4.moveTo(cx + hr * (c - s), cy + hr * (s + c));
+      ctx4.lineTo(cx + hr * (-c - s), cy + hr * (-s + c));
+      ctx4.lineTo(cx + hr * (-c + s), cy + hr * (-s - c));
+      ctx4.lineTo(cx + hr * (c + s), cy + hr * (s - c));
+      ctx4.closePath();
+    }
+
+    var n4Colors = [rndNeon(), rndNeon(), rndNeon()];
+    var n4S = [];
+    for (var i = 0; i < 5; i++) {
+      n4S.push({
+        x: N4W * (0.1 + i * 0.2), y: N4H * 0.5,
+        px: 0, py: 0,
+        angle: i * 1.25, spd: 0.8 + i * 0.06, bspd: 0.8 + i * 0.06,
+        seed: 42 + i * 95, col: n4Colors[i % 3],
+        segDist: 0, segLen: 30 + Math.random() * 40,
+        turnDir: Math.random() < 0.5 ? 1 : -1, turning: 0
+      });
+    }
+    for (var i = 0; i < 5; i++) { n4S[i].px = n4S[i].x; n4S[i].py = n4S[i].y; }
+
+    var n4CollCd = {};
+
+    function drawNeon4() {
+      requestAnimationFrame(drawNeon4);
+      if (!visMap['cvNeon4']) return;
+      ctx4.fillStyle = 'rgba(5,0,6,0.08)';
+      ctx4.fillRect(0, 0, N4W, N4H);
+      var pulse = 0.75 + Math.sin(tN4 * 0.5) * 0.25;
+      ctx4.globalCompositeOperation = 'lighter';
+
+      for (var si = 0; si < 5; si++) {
+        var s = n4S[si];
+        s.px = s.x; s.py = s.y;
+        // Square trajectory: wobble + straight/turn
+        var wb = (snoise(s.seed, tN4 * 0.08) - 0.5) * 0.012;
+        s.angle += wb;
+        if (s.turning > 0) {
+          var step = Math.min(N4_TURN_SPD, s.turning);
+          s.angle += step * s.turnDir;
+          s.turning -= step;
+          s.spd += (s.bspd * 0.5 - s.spd) * 0.1;
+        } else {
+          s.segDist += s.spd;
+          s.spd += (s.bspd - s.spd) * 0.05;
+          if (s.segDist >= s.segLen) {
+            s.segDist = 0;
+            s.segLen = 30 + snoise(s.seed + 300, tN4 * 0.05) * 50;
+            s.turning = Math.PI / 2 + (snoise(s.seed + 400, tN4 * 0.1) - 0.5) * 0.5;
+            if (snoise(s.seed + 500, tN4 * 0.03) > 0.7) s.turnDir *= -1;
+          }
+        }
+        s.x += Math.cos(s.angle) * s.spd;
+        s.y += Math.sin(s.angle) * s.spd;
+        // Edge steering
+        var ex = Math.abs(s.x - N4W / 2) / (N4W / 2);
+        var ey = Math.abs(s.y - N4H / 2) / (N4H / 2);
+        var edge = Math.max(ex, ey);
+        if (edge > 0.8) {
+          var da = Math.atan2(N4H / 2 - s.y, N4W / 2 - s.x) - s.angle;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          s.angle += da * (edge - 0.8) * 0.4;
+          s.turning = 0; s.segDist = 0; s.segLen = 30 + Math.random() * 40;
+        }
+        // Wake trail
+        var tls = [{ hw: 4, a: 0.03 }, { hw: 2, a: 0.08 }, { hw: 0.8, a: 0.18 }];
+        for (var li = 0; li < tls.length; li++) {
+          ctx4.fillStyle = 'rgba(' + s.col + ',' + (tls[li].a * pulse) + ')';
+          n4Wake(s.px, s.py, s.x, s.y, tls[li].hw, s.angle);
+          ctx4.fill();
+        }
+        // Square head glow
+        var gs = [{ r: 6, a: 0.06 * pulse }, { r: 3, a: 0.15 * pulse }, { r: 1.5, a: 0.4 * pulse }];
+        for (var gi = 0; gi < gs.length; gi++) {
+          ctx4.fillStyle = 'rgba(' + s.col + ',' + gs[gi].a + ')';
+          n4Sq(s.x, s.y, gs[gi].r, s.angle);
+          ctx4.fill();
+        }
+        ctx4.fillStyle = 'rgba(255,240,255,' + (0.7 * pulse) + ')';
+        n4Sq(s.x, s.y, 1.0, s.angle);
+        ctx4.fill();
+      }
+
+      // Collision + color change
+      var nFrame4 = Math.floor(tN4 * 125);
+      for (var i = 0; i < 5; i++) {
+        for (var j = i + 1; j < 5; j++) {
+          var dx = n4S[j].x - n4S[i].x, dy = n4S[j].y - n4S[i].y;
+          var d = Math.sqrt(dx * dx + dy * dy);
+          var ck = i * 10 + j;
+          if (d < 15 && (!n4CollCd[ck] || nFrame4 - n4CollCd[ck] > 100)) {
+            n4CollCd[ck] = nFrame4;
+            n4S[i].angle = Math.atan2(-dy, -dx) + (Math.random() - 0.5) * 0.8;
+            n4S[j].angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.8;
+            n4S[i].col = rndNeon();
+            n4S[j].col = rndNeon();
+            n4S[i].turning = 0; n4S[i].segDist = 0;
+            n4S[j].turning = 0; n4S[j].segDist = 0;
+          }
+        }
+      }
+      ctx4.globalCompositeOperation = 'source-over';
+      tN4 += 0.008;
+    }
+    drawNeon4();
+  })();
+
+    // --- Neon5 プレビュー（3スケーター + Sin/Cos/Sin2波形 + 衝突波形シャッフル）---
+    (function() {
+    var cn5 = document.getElementById('cvNeon5');
+    if (!cn5) return;
+    var ctx5 = cn5.getContext('2d');
+    var N5W = cn5.width = 400, N5H = cn5.height = 225;
+    var tN5 = 0;
+    var N5_FREQ = 0.015;
+    var N5_AMP = 100;
+
+    function n5Wake(tx, ty, hx, hy, hw, ang) {
+      var pa = ang + Math.PI / 2;
+      var cp = Math.cos(pa), sp = Math.sin(pa);
+      ctx5.beginPath();
+      ctx5.moveTo(tx, ty);
+      ctx5.lineTo(hx + hw * cp, hy + hw * sp);
+      ctx5.lineTo(hx - hw * cp, hy - hw * sp);
+      ctx5.closePath();
+    }
+
+    function n5WaveFunc(type, phase) {
+      if (type === 'sin') return Math.sin(phase);
+      if (type === 'cos') return Math.cos(phase);
+      return Math.sin(phase * 2);
+    }
+
+    var n5Colors = ['255,40,80', '20,100,255', '255,240,180'];
+    var n5Types = ['sin', 'cos', 'sin2'];
+    var n5S = [];
+    for (var i = 0; i < 3; i++) {
+      var ba = Math.random() * Math.PI * 2;
+      n5S.push({
+        x: N5W * (0.2 + i * 0.3), y: N5H * 0.5,
+        px: 0, py: 0, ppx: 0, ppy: 0,
+        baseX: N5W * (0.2 + i * 0.3), baseY: N5H * 0.5,
+        baseAngle: ba, phase: Math.random() * Math.PI * 2,
+        angle: ba, spd: 0.8 + i * 0.08, bspd: 0.8 + i * 0.08,
+        seed: 42 + i * 95, col: n5Colors[i], waveType: n5Types[i]
+      });
+    }
+    for (var i = 0; i < 3; i++) { n5S[i].px = n5S[i].x; n5S[i].py = n5S[i].y; n5S[i].ppx = n5S[i].x; n5S[i].ppy = n5S[i].y; }
+
+    var n5CollCd = {};
+
+    function drawNeon5() {
+      requestAnimationFrame(drawNeon5);
+      if (!visMap['cvNeon5']) return;
+      ctx5.fillStyle = 'rgba(5,0,6,0.08)';
+      ctx5.fillRect(0, 0, N5W, N5H);
+      var pulse = 0.75 + Math.sin(tN5 * 0.5) * 0.25;
+      ctx5.globalCompositeOperation = 'lighter';
+
+      for (var si = 0; si < 3; si++) {
+        var s = n5S[si];
+        s.ppx = s.px; s.ppy = s.py;
+        s.px = s.x; s.py = s.y;
+        // Base angle drift
+        s.baseAngle += (snoise(s.seed, tN5 * 0.03) - 0.5) * 0.008;
+        s.spd += (s.bspd - s.spd) * 0.03;
+        // Advance
+        s.phase += s.spd * N5_FREQ;
+        s.baseX += Math.cos(s.baseAngle) * s.spd;
+        s.baseY += Math.sin(s.baseAngle) * s.spd;
+        // Lateral offset
+        var perp = s.baseAngle + Math.PI / 2;
+        var lat = N5_AMP * n5WaveFunc(s.waveType, s.phase);
+        s.x = s.baseX + Math.cos(perp) * lat;
+        s.y = s.baseY + Math.sin(perp) * lat;
+        // Screen wrap
+        var mg = 105, wp = false;
+        if (s.baseX < -mg) { var sh = N5W + 2 * mg; s.baseX += sh; s.x += sh; wp = true; }
+        else if (s.baseX > N5W + mg) { var sh = N5W + 2 * mg; s.baseX -= sh; s.x -= sh; wp = true; }
+        if (s.baseY < -mg) { var sh = N5H + 2 * mg; s.baseY += sh; s.y += sh; wp = true; }
+        else if (s.baseY > N5H + mg) { var sh = N5H + 2 * mg; s.baseY -= sh; s.y -= sh; wp = true; }
+        if (wp) { s.px = s.x; s.py = s.y; s.ppx = s.x; s.ppy = s.y; }
+        // Movement angle
+        var mdx = s.x - s.px, mdy = s.y - s.py;
+        if (mdx !== 0 || mdy !== 0) s.angle = Math.atan2(mdy, mdx);
+        // Wake trail (bezier curves — no joints)
+        ctx5.lineCap = 'butt';
+        var tls = [{ hw: 4, a: 0.03 }, { hw: 2, a: 0.08 }, { hw: 0.8, a: 0.18 }];
+        var m0x = (s.ppx + s.px) * 0.5, m0y = (s.ppy + s.py) * 0.5;
+        var m1x = (s.px + s.x) * 0.5, m1y = (s.py + s.y) * 0.5;
+        for (var li = 0; li < tls.length; li++) {
+          ctx5.strokeStyle = 'rgba(' + s.col + ',' + (tls[li].a * pulse) + ')';
+          ctx5.lineWidth = tls[li].hw * 2;
+          ctx5.beginPath(); ctx5.moveTo(m0x, m0y); ctx5.quadraticCurveTo(s.px, s.py, m1x, m1y); ctx5.stroke();
+        }
+        // Circle head glow
+        var gs = [{ r: 6, a: 0.06 * pulse }, { r: 3, a: 0.15 * pulse }, { r: 1.5, a: 0.4 * pulse }];
+        for (var gi = 0; gi < gs.length; gi++) {
+          ctx5.fillStyle = 'rgba(' + s.col + ',' + gs[gi].a + ')';
+          ctx5.beginPath(); ctx5.arc(s.x, s.y, gs[gi].r, 0, Math.PI * 2); ctx5.fill();
+        }
+        ctx5.fillStyle = 'rgba(255,240,255,' + (0.7 * pulse) + ')';
+        ctx5.beginPath(); ctx5.arc(s.x, s.y, 1.0, 0, Math.PI * 2); ctx5.fill();
+      }
+
+      // Collision + wave shuffle
+      var nFrame5 = Math.floor(tN5 * 125);
+      for (var i = 0; i < 3; i++) {
+        for (var j = i + 1; j < 3; j++) {
+          var dx = n5S[j].x - n5S[i].x, dy = n5S[j].y - n5S[i].y;
+          var d = Math.sqrt(dx * dx + dy * dy);
+          var ck = i * 10 + j;
+          if (d < 15 && (!n5CollCd[ck] || nFrame5 - n5CollCd[ck] > 100)) {
+            n5CollCd[ck] = nFrame5;
+            n5S[i].baseAngle = Math.atan2(-dy, -dx) + (Math.random() - 0.5) * 0.8;
+            n5S[j].baseAngle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.8;
+            n5S[i].spd = 2.5; n5S[j].spd = 2.5;
+            // Color change
+            n5S[i].col = rndNeon();
+            n5S[j].col = rndNeon();
+          }
+        }
+      }
+      ctx5.globalCompositeOperation = 'source-over';
+      tN5 += 0.008;
+    }
+    drawNeon5();
+  })();
+
+    // --- Neon6 プレビュー（3スケーター + ケプラー軌道）---
+    (function() {
+    var cn6 = document.getElementById('cvNeon6');
+    if (!cn6) return;
+    var ctx6 = cn6.getContext('2d');
+    var N6W = cn6.width = 400, N6H = cn6.height = 225;
+    var tN6 = 0;
+
+    var N6_PRESETS = {
+      circular:   { a: 0.55, e: 0.05, period: 900 },
+      elliptical: { a: 0.40, e: 0.50, period: 700 },
+      comet:      { a: 0.60, e: 0.80, period: 1100 }
+    };
+
+    function n6Kepler(M, e) {
+      var E = M;
+      for (var i = 0; i < 10; i++) {
+        var dE = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+        E -= dE;
+        if (Math.abs(dE) < 1e-8) break;
+      }
+      return E;
+    }
+
+    function n6OrbitPos(s) {
+      var preset = N6_PRESETS[s.oType];
+      var scale = Math.min(N6W, N6H) * 0.5;
+      var a = preset.a * scale;
+      var e = preset.e;
+      var b = a * Math.sqrt(1 - e * e);
+      var M = (s.phase + s.orbitTime * Math.PI * 2 / preset.period) % (Math.PI * 2);
+      var E = n6Kepler(M, e);
+      var ox = a * (Math.cos(E) - e);
+      var oy = b * Math.sin(E);
+      var ct = Math.cos(s.tilt), st = Math.sin(s.tilt);
+      return {
+        x: N6W * 0.5 + (ox * ct - oy * st),
+        y: N6H * 0.5 + (ox * st + oy * ct)
+      };
+    }
+
+    var n6Colors = ['255,40,80', '20,100,255', '255,240,180'];
+    var n6Types = ['circular', 'elliptical', 'comet'];
+    var n6S = [];
+    var tilts6 = [0, Math.PI * 2 * 0.33, Math.PI * 2 * 0.67];
+    for (var i = 0; i < 3; i++) {
+      var phase = Math.random() * Math.PI * 2;
+      var tilt = tilts6[i] + (Math.random() - 0.5) * 0.6;
+      var s = {
+        oType: n6Types[i], phase: phase, tilt: tilt,
+        orbitTime: 0, precession: (Math.random() - 0.5) * 0.0006,
+        x: 0, y: 0, px: 0, py: 0, ppx: 0, ppy: 0,
+        col: n6Colors[i], angle: 0
+      };
+      var pos = n6OrbitPos(s);
+      s.x = pos.x; s.y = pos.y; s.px = pos.x; s.py = pos.y; s.ppx = pos.x; s.ppy = pos.y;
+      n6S.push(s);
+    }
+
+    var n6CollCd = {};
+
+    function drawNeon6() {
+      requestAnimationFrame(drawNeon6);
+      if (!visMap['cvNeon6']) return;
+      ctx6.fillStyle = 'rgba(5,0,6,0.06)';
+      ctx6.fillRect(0, 0, N6W, N6H);
+      var pulse = 0.75 + Math.sin(tN6 * 0.5) * 0.25;
+      ctx6.globalCompositeOperation = 'lighter';
+
+      for (var si = 0; si < 3; si++) {
+        var s = n6S[si];
+        s.ppx = s.px; s.ppy = s.py;
+        s.px = s.x; s.py = s.y;
+        s.orbitTime++;
+        s.tilt += s.precession;
+        var pos = n6OrbitPos(s);
+        s.x = pos.x; s.y = pos.y;
+        var mdx = s.x - s.px, mdy = s.y - s.py;
+        if (mdx !== 0 || mdy !== 0) s.angle = Math.atan2(mdy, mdx);
+
+        // Bezier trail
+        ctx6.lineCap = 'butt';
+        var m0x = (s.ppx + s.px) * 0.5, m0y = (s.ppy + s.py) * 0.5;
+        var m1x = (s.px + s.x) * 0.5, m1y = (s.py + s.y) * 0.5;
+        var tls = [{ hw: 4, a: 0.03 }, { hw: 2, a: 0.08 }, { hw: 0.8, a: 0.18 }];
+        for (var li = 0; li < tls.length; li++) {
+          ctx6.strokeStyle = 'rgba(' + s.col + ',' + (tls[li].a * pulse) + ')';
+          ctx6.lineWidth = tls[li].hw * 2;
+          ctx6.beginPath(); ctx6.moveTo(m0x, m0y); ctx6.quadraticCurveTo(s.px, s.py, m1x, m1y); ctx6.stroke();
+        }
+
+        // Head glow
+        var gs = [{ r: 6, a: 0.06 * pulse }, { r: 3, a: 0.15 * pulse }, { r: 1.5, a: 0.4 * pulse }];
+        for (var gi = 0; gi < gs.length; gi++) {
+          ctx6.fillStyle = 'rgba(' + s.col + ',' + gs[gi].a + ')';
+          ctx6.beginPath(); ctx6.arc(s.x, s.y, gs[gi].r, 0, Math.PI * 2); ctx6.fill();
+        }
+        ctx6.fillStyle = 'rgba(255,240,255,' + (0.7 * pulse) + ')';
+        ctx6.beginPath(); ctx6.arc(s.x, s.y, 1.0, 0, Math.PI * 2); ctx6.fill();
+      }
+
+      // Collision + orbit swap
+      var nFrame6 = Math.floor(tN6 * 125);
+      for (var i = 0; i < 3; i++) {
+        for (var j = i + 1; j < 3; j++) {
+          var dx = n6S[j].x - n6S[i].x, dy = n6S[j].y - n6S[i].y;
+          var d = Math.sqrt(dx * dx + dy * dy);
+          var ck = i * 10 + j;
+          if (d < 15 && (!n6CollCd[ck] || nFrame6 - n6CollCd[ck] > 100)) {
+            n6CollCd[ck] = nFrame6;
+            var tmp = n6S[i].oType;
+            n6S[i].oType = n6S[j].oType;
+            n6S[j].oType = tmp;
+            n6S[i].tilt += (Math.random() - 0.5);
+            n6S[j].tilt += (Math.random() - 0.5);
+            n6S[i].col = rndNeon();
+            n6S[j].col = rndNeon();
+          }
+        }
+      }
+      ctx6.globalCompositeOperation = 'source-over';
+      tN6 += 0.008;
+    }
+    drawNeon6();
+  })();
+
   })();
   }, 10); // end setTimeout — defer canvas init to let loading screen paint
   </script>
