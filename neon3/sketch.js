@@ -20,14 +20,8 @@ var ripples = [];
 var lastMouseMoveMs = 0;
 var MOUSE_ATTRACT_MS = 3000;
 
-// Trail canvases — double-buffer
-var trailPgA, trailPgB;
-var activeTrail = 0;
-var swapFrameCount = 0;
-var SWAP_INTERVAL = 1500;
-var FADE_ALPHA = 0.02;
-var FADE_EVERY = 29;
-var fadeFrameCount = 0;
+// Trail canvas (single — user clears manually via eraser)
+var trailPg;
 
 // Skaters
 var skaters = [];
@@ -47,6 +41,16 @@ var TWO_THIRDS_PI = 2.0943951;
 // Background (fixed Sunset Drive theme)
 var BG_R = 5, BG_G = 0, BG_B = 6;
 
+// Collision
+var COLLISION_DIST = 45;
+var COLLISION_COOLDOWN = 800;
+var collisionCooldowns = {};
+var sparks = [];
+
+// Neon2-style triangular trajectory
+var TURN_ANGLE = TWO_THIRDS_PI; // 120° base turn
+var TURN_SPEED = 0.12; // radians per frame during turn
+
 // UI
 var shapeUIRects = [];
 var eraserRect = null;
@@ -55,6 +59,17 @@ var eraserFlash = 0;
 // ============================================
 // Shape drawing helpers
 // ============================================
+// Neon2-style elongated triangle wake (prev → current position)
+function wakePath(ctx, tx, ty, hx, hy, hw, angle) {
+  var pa = angle + 1.5707963; // angle + PI/2
+  var cp = Math.cos(pa), sp = Math.sin(pa);
+  ctx.beginPath();
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(hx + hw * cp, hy + hw * sp);
+  ctx.lineTo(hx - hw * cp, hy - hw * sp);
+  ctx.closePath();
+}
+
 function drawShape(ctx, shape, cx, cy, r, angle) {
   if (shape === 'circle') {
     ctx.beginPath();
@@ -84,10 +99,8 @@ function drawShape(ctx, shape, cx, cy, r, angle) {
 function setup() {
   pixelDensity(1);
   createCanvas(windowWidth, windowHeight);
-  trailPgA = createGraphics(width, height);
-  trailPgA.pixelDensity(1);
-  trailPgB = createGraphics(width, height);
-  trailPgB.pixelDensity(1);
+  trailPg = createGraphics(width, height);
+  trailPg.pixelDensity(1);
   initSkaters();
   updateUIRects();
 }
@@ -96,18 +109,25 @@ function initSkaters() {
   skaters = [];
   for (var i = 0; i < 3; i++) {
     var positions = [0.25, 0.5, 0.75];
+    var bs = 2.0 + random(0, 1.5);
     skaters.push({
       x: width * positions[i], y: height * 0.5,
       prevX: width * positions[i], prevY: height * 0.5,
       angle: random(TWO_PI),
       curvature: 0,
-      baseSpeed: 2.5, speed: 2.5,
+      baseSpeed: bs, speed: bs,
       seed: 42 + i * 95,
       color: SKATER_COLORS[i],
       shape: SHAPE_TYPES[i],
       entryTime: ENTRY_TIMES[i],
       active: false,
-      fadeIn: 0
+      fadeIn: 0,
+      spinOffset: random(TWO_PI),
+      segDist: 0,
+      segLen: 60 + random(80),
+      turnDir: random() < 0.5 ? 1 : -1,
+      turning: 0,
+      turnTarget: 0
     });
   }
 }
@@ -138,21 +158,61 @@ function updateUIRects() {
 }
 
 // ============================================
-// Physics (Neon1-style smooth curves)
+// Physics — shape-dependent trajectory
+// 丸: 連続曲率で円軌道
+// 三角: 直進→120°ターン (Neon2)
+// 四角: 直進→90°ターン
 // ============================================
 function updateSkater(idx) {
   var s = skaters[idx];
   s.prevX = s.x;
   s.prevY = s.y;
 
-  var n1 = noise(s.seed, t * 0.06) - 0.5;
-  var n2 = noise(s.seed + 100, t * 0.2) - 0.5;
-  var targetCurv = n1 * 0.06 + n2 * 0.025;
+  if (s.shape === 'circle') {
+    // === Circle: continuous curvature → circular loops with drift ===
+    // Base curvature ~0.04 → radius ~62px, noise reduced for clean circles
+    var n1 = noise(s.seed, t * 0.04) - 0.5;
+    var targetCurv = 0.04 * s.turnDir + n1 * 0.01;
+    s.curvature = lerp(s.curvature, targetCurv, 0.04);
+    s.angle += s.curvature;
 
-  var loopN = noise(s.seed + 200, t * 0.1);
-  if (loopN > 0.82) targetCurv += (loopN - 0.82) * 4 * 0.09 * (n1 > 0 ? 1 : -1);
+    // Slow drift — shifts loop center across screen over time
+    var drift = (noise(s.seed + 99, t * 0.008) - 0.5) * 0.008;
+    s.angle += drift;
 
-  s.curvature = lerp(s.curvature, targetCurv, 0.03);
+    s.speed = lerp(s.speed, s.baseSpeed, 0.05);
+
+    // Reverse direction every 2-3 loops (~300-500px)
+    s.segDist += s.speed;
+    if (s.segDist > 300 + noise(s.seed + 600, t * 0.05) * 200) {
+      s.segDist = 0;
+      if (random() < 0.5) s.turnDir *= -1;
+    }
+  } else {
+    // === Triangle (120°) or Square (90°): straight + sharp turns ===
+    var turnAngle = s.shape === 'triangle' ? TWO_THIRDS_PI : HALF_PI;
+
+    // Subtle wobble
+    var wobble = (noise(s.seed, t * 0.08) - 0.5) * 0.012;
+    s.angle += wobble;
+
+    if (s.turning > 0) {
+      var step = min(TURN_SPEED, s.turning);
+      s.angle += step * s.turnDir;
+      s.turning -= step;
+      s.speed = lerp(s.speed, s.baseSpeed * 0.5, 0.1);
+    } else {
+      s.segDist += s.speed;
+      s.speed = lerp(s.speed, s.baseSpeed, 0.05);
+      if (s.segDist >= s.segLen) {
+        s.segDist = 0;
+        s.segLen = 50 + noise(s.seed + 300, t * 0.05) * 100;
+        s.turnTarget = turnAngle + (noise(s.seed + 400, t * 0.1) - 0.5) * 0.5;
+        s.turning = s.turnTarget;
+        if (noise(s.seed + 500, t * 0.03) > 0.7) s.turnDir *= -1;
+      }
+    }
+  }
 
   // Mouse attraction
   var mouseElapsed = millis() - lastMouseMoveMs;
@@ -166,7 +226,7 @@ function updateSkater(idx) {
       var diff = atan2(dy, dx) - s.angle;
       while (diff > PI) diff -= TWO_PI;
       while (diff < -PI) diff += TWO_PI;
-      s.curvature += diff * (1 - d / 500) * 0.012 * mouseInfluence;
+      s.angle += diff * (1 - d / 500) * 0.008 * mouseInfluence;
     }
   }
 
@@ -179,8 +239,7 @@ function updateSkater(idx) {
       var diff = atan2(dy, dx) - s.angle;
       while (diff > PI) diff -= TWO_PI;
       while (diff < -PI) diff += TWO_PI;
-      s.curvature += diff * (1 - d / 350) * holdStr * 0.006;
-      s.curvature += (1 - d / 350) * holdStr * 0.004;
+      s.angle += diff * (1 - d / 350) * holdStr * 0.005;
     }
   }
 
@@ -189,13 +248,10 @@ function updateSkater(idx) {
     var diff = atan2(gustDirY, gustDirX) - s.angle;
     while (diff > PI) diff -= TWO_PI;
     while (diff < -PI) diff += TWO_PI;
-    s.curvature += diff * gustStrength * 0.012;
+    s.angle += diff * gustStrength * 0.008;
   }
 
-  s.angle += s.curvature;
-
-  var targetSpeed = s.baseSpeed - abs(s.curvature) * 15;
-  s.speed = lerp(s.speed, max(1.2, min(4.5, targetSpeed)), 0.05);
+  // Move
   s.x += cos(s.angle) * s.speed;
   s.y += sin(s.angle) * s.speed;
 
@@ -208,6 +264,52 @@ function updateSkater(idx) {
     while (diff > PI) diff -= TWO_PI;
     while (diff < -PI) diff += TWO_PI;
     s.angle += diff * (edge - 0.85) * 0.3;
+    // Cancel any turn and start a fresh segment toward center
+    s.turning = 0;
+    s.segDist = 0;
+    s.segLen = 60 + random(80);
+  }
+}
+
+// ============================================
+// Collisions — scatter on contact
+// ============================================
+function checkCollisions() {
+  var now = millis();
+  for (var i = 0; i < skaters.length; i++) {
+    if (!skaters[i].active || skaters[i].fadeIn < 0.5) continue;
+    for (var j = i + 1; j < skaters.length; j++) {
+      if (!skaters[j].active || skaters[j].fadeIn < 0.5) continue;
+      var a = skaters[i], b = skaters[j];
+      var dx = b.x - a.x, dy = b.y - a.y;
+      var d = sqrt(dx * dx + dy * dy);
+      var key = i * 10 + j;
+      if (d < COLLISION_DIST && (!collisionCooldowns[key] || now - collisionCooldowns[key] > COLLISION_COOLDOWN)) {
+        collisionCooldowns[key] = now;
+        // Bounce (Neon2 style)
+        a.angle = atan2(-dy, -dx) + random(-0.4, 0.4);
+        b.angle = atan2(dy, dx) + random(-0.4, 0.4);
+        a.speed = 5.5; b.speed = 5.5;
+        a.curvature *= 0.3; b.curvature *= 0.3;
+        a.turning = 0; a.segDist = 0; a.segLen = 60 + random(80);
+        b.turning = 0; b.segDist = 0; b.segLen = 60 + random(80);
+        var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+        // Ripple
+        ripples.push({ x: mx, y: my, age: 0, color: a.color });
+        ripples.push({ x: mx, y: my, age: 0.3, color: b.color });
+        // Sparks (8 spinning shape particles)
+        for (var k = 0; k < 8; k++) {
+          var src = k < 4 ? a : b;
+          var sa = random(TWO_PI), spd = random(2, 6);
+          sparks.push({
+            x: mx, y: my,
+            vx: cos(sa) * spd, vy: sin(sa) * spd,
+            age: 0, color: src.color, shape: src.shape,
+            angle: sa, spin: random(-0.3, 0.3)
+          });
+        }
+      }
+    }
   }
 }
 
@@ -244,35 +346,31 @@ function draw() {
   for (var i = 0; i < skaters.length; i++) {
     if (skaters[i].active) updateSkater(i);
   }
+  checkCollisions();
 
-  // === Trail Canvases ===
-  var tctxA = trailPgA.drawingContext;
-  var tctxB = trailPgB.drawingContext;
-
-  fadeFrameCount++;
-  if (fadeFrameCount >= FADE_EVERY) {
-    fadeFrameCount = 0;
-    tctxA.globalCompositeOperation = 'destination-out';
-    tctxA.fillStyle = 'rgba(0,0,0,' + FADE_ALPHA + ')';
-    tctxA.fillRect(0, 0, width, height);
-    tctxB.globalCompositeOperation = 'destination-out';
-    tctxB.fillStyle = 'rgba(0,0,0,' + FADE_ALPHA + ')';
-    tctxB.fillRect(0, 0, width, height);
+  // Update sparks
+  for (var si = 0; si < sparks.length; si++) {
+    var sp = sparks[si];
+    sp.x += sp.vx; sp.y += sp.vy;
+    sp.vx *= 0.95; sp.vy *= 0.95;
+    sp.age += 0.025;
+    sp.angle += sp.spin;
   }
+  sparks = sparks.filter(function(sp) { return sp.age < 1.5; });
 
-  // Draw trail segments
-  var tctx = activeTrail === 0 ? tctxA : tctxB;
+  // === Trail Canvas ===
+  var tctx = trailPg.drawingContext;
   tctx.globalCompositeOperation = 'lighter';
 
   var trailLayers = [
-    { size: 14, a: 0.02 },
-    { size: 7, a: 0.05 },
-    { size: 3, a: 0.12 },
-    { size: 1.5, a: 0.25 }
+    { hw: 9,   a: 0.02 },
+    { hw: 4.5, a: 0.05 },
+    { hw: 2,   a: 0.12 },
+    { hw: 0.9, a: 0.25 }
   ];
 
   for (var li = 0; li < trailLayers.length; li++) {
-    var ls = trailLayers[li].size;
+    var lhw = trailLayers[li].hw;
     var la = trailLayers[li].a;
     for (var si = 0; si < skaters.length; si++) {
       var s = skaters[si];
@@ -280,18 +378,9 @@ function draw() {
       var a = la * s.fadeIn * pulse;
       var col = s.color;
       tctx.fillStyle = 'rgba(' + col.r + ',' + col.g + ',' + col.b + ',' + a + ')';
-      drawShape(tctx, s.shape, s.x, s.y, ls * pinchScale, s.angle);
+      wakePath(tctx, s.prevX, s.prevY, s.x, s.y, lhw * pinchScale, s.angle);
       tctx.fill();
     }
-  }
-
-  // Swap buffers
-  swapFrameCount++;
-  if (swapFrameCount >= SWAP_INTERVAL) {
-    swapFrameCount = 0;
-    activeTrail = 1 - activeTrail;
-    var clearCtx = activeTrail === 0 ? tctxA : tctxB;
-    clearCtx.clearRect(0, 0, width, height);
   }
 
   // === Main Canvas ===
@@ -302,10 +391,9 @@ function draw() {
   ctx.fillStyle = 'rgb(' + BG_R + ',' + BG_G + ',' + BG_B + ')';
   ctx.fillRect(0, 0, width, height);
 
-  // Composite trail canvases
+  // Composite trail canvas
   ctx.globalCompositeOperation = 'lighter';
-  ctx.drawImage(trailPgA.canvas, 0, 0);
-  ctx.drawImage(trailPgB.canvas, 0, 0);
+  ctx.drawImage(trailPg.canvas, 0, 0);
 
   // Skater heads — multi-layer glow
   for (var i = 0; i < skaters.length; i++) {
@@ -317,20 +405,35 @@ function draw() {
     var colStr = col.r + ',' + col.g + ',' + col.b;
 
     var heads = [
-      { r: 20 * sc, a: 0.025 * pulse * fi },
-      { r: 10 * sc, a: 0.07 * pulse * fi },
-      { r: 5 * sc, a: 0.16 * pulse * fi },
-      { r: 2.5 * sc, a: 0.4 * pulse * fi },
-      { r: 1.2 * sc, a: 0.8 * pulse * fi }
+      { r: 22 * sc, a: 0.025 * pulse * fi },
+      { r: 12 * sc, a: 0.07 * pulse * fi },
+      { r: 6 * sc, a: 0.16 * pulse * fi },
+      { r: 3 * sc, a: 0.4 * pulse * fi },
+      { r: 1.5 * sc, a: 0.8 * pulse * fi }
     ];
     for (var hi = 0; hi < heads.length; hi++) {
       ctx.fillStyle = 'rgba(' + colStr + ',' + heads[hi].a + ')';
-      drawShape(ctx, s.shape, s.x, s.y, heads[hi].r, s.angle + Math.sin(t * 0.3 + s.seed) * 0.15);
+      drawShape(ctx, s.shape, s.x, s.y, heads[hi].r, s.angle + Math.sin(t * 0.3 + s.spinOffset) * 0.15);
       ctx.fill();
     }
     // White core
     ctx.fillStyle = 'rgba(255,240,255,' + (pulse * fi) + ')';
     drawShape(ctx, s.shape, s.x, s.y, 1.2 * sc, s.angle);
+    ctx.fill();
+  }
+
+  // Sparks — spinning shapes
+  for (var si = 0; si < sparks.length; si++) {
+    var sp = sparks[si];
+    var fade = Math.max(0, 1 - sp.age / 1.2);
+    fade = fade * fade;
+    if (fade <= 0) continue;
+    var spCol = sp.color;
+    ctx.fillStyle = 'rgba(' + spCol.r + ',' + spCol.g + ',' + spCol.b + ',' + (fade * 0.5) + ')';
+    drawShape(ctx, sp.shape, sp.x, sp.y, 3.5 * fade, sp.angle);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,' + (fade * 0.35) + ')';
+    drawShape(ctx, sp.shape, sp.x, sp.y, 1.2 * fade, sp.angle);
     ctx.fill();
   }
 
@@ -384,62 +487,96 @@ function draw() {
 // UI Drawing
 // ============================================
 function drawShapeUI(ctx) {
+  var pulse = 0.75 + Math.sin(t * 0.5) * 0.25;
   for (var i = 0; i < shapeUIRects.length; i++) {
     var rect = shapeUIRects[i];
     var s = skaters[rect.idx];
     if (!s) continue;
 
-    // Only show if skater is active or about to be
     var elapsed = appStarted ? (millis() - appStartTime) / 1000 : 0;
-    var visible = elapsed >= s.entryTime - 5; // show 5 seconds before entry
+    var visible = elapsed >= s.entryTime - 5;
     if (!visible) continue;
 
-    var uiAlpha = s.active ? Math.min(s.fadeIn + 0.3, 1) : 0.3;
-
-    // Background
-    ctx.fillStyle = 'rgba(10,10,20,' + (0.5 * uiAlpha) + ')';
-    ctx.beginPath(); ctx.roundRect(rect.x, rect.y, rect.w, rect.h, 8); ctx.fill();
-
-    // Border
-    ctx.strokeStyle = 'rgba(' + s.color.r + ',' + s.color.g + ',' + s.color.b + ',' + (0.6 * uiAlpha) + ')';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Shape icon
+    var fi = s.active ? Math.min(s.fadeIn + 0.3, 1) : 0.3;
     var cx = rect.x + rect.w / 2;
     var cy = rect.y + rect.h / 2;
-    ctx.fillStyle = 'rgba(' + s.color.r + ',' + s.color.g + ',' + s.color.b + ',' + (0.85 * uiAlpha) + ')';
-    drawShape(ctx, s.shape, cx, cy, 12, -Math.PI / 2); // point up
+    var colStr = s.color.r + ',' + s.color.g + ',' + s.color.b;
+    var wobble = -Math.PI / 2 + Math.sin(t * 0.3 + s.seed) * 0.15;
+
+    // Neon glow layers
+    ctx.globalCompositeOperation = 'lighter';
+    var uiHeads = [
+      { r: 20, a: 0.06 * pulse * fi },
+      { r: 14, a: 0.14 * pulse * fi },
+      { r: 9,  a: 0.3 * pulse * fi },
+      { r: 5,  a: 0.6 * pulse * fi },
+      { r: 2.5, a: 1.0 * pulse * fi }
+    ];
+    for (var gi = 0; gi < uiHeads.length; gi++) {
+      ctx.fillStyle = 'rgba(' + colStr + ',' + uiHeads[gi].a + ')';
+      drawShape(ctx, s.shape, cx, cy, uiHeads[gi].r, wobble);
+      ctx.fill();
+    }
+    // White core
+    ctx.fillStyle = 'rgba(255,240,255,' + (pulse * fi) + ')';
+    drawShape(ctx, s.shape, cx, cy, 1.8, wobble);
     ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
   }
 }
 
 function drawEraserUI(ctx) {
   if (!eraserRect) return;
 
-  var uiAlpha = 0.7;
-  // Background
-  ctx.fillStyle = 'rgba(10,10,20,' + (0.5 * uiAlpha) + ')';
-  ctx.beginPath(); ctx.roundRect(eraserRect.x, eraserRect.y, eraserRect.w, eraserRect.h, 8); ctx.fill();
+  var cx = eraserRect.x + eraserRect.w / 2;
+  var cy = eraserRect.y + eraserRect.h / 2;
+  var pulse = 0.75 + Math.sin(t * 0.5) * 0.25;
+  var rot = t * 0.4;
 
-  // Border
-  ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 * uiAlpha) + ')';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  // X icon
-  var padding = 16;
-  ctx.strokeStyle = 'rgba(255,255,255,' + (0.6 * uiAlpha) + ')';
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(eraserRect.x + padding, eraserRect.y + padding);
-  ctx.lineTo(eraserRect.x + eraserRect.w - padding, eraserRect.y + eraserRect.h - padding);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(eraserRect.x + eraserRect.w - padding, eraserRect.y + padding);
-  ctx.lineTo(eraserRect.x + padding, eraserRect.y + eraserRect.h - padding);
-  ctx.stroke();
+  // Rotating arc ring with 3 skater color segments
+  ctx.globalCompositeOperation = 'lighter';
+  var arcR = 12;
+  var segAngle = Math.PI * 2 / 3;
+  for (var ci = 0; ci < 3; ci++) {
+    var col = SKATER_COLORS[ci];
+    var colStr = col.r + ',' + col.g + ',' + col.b;
+    var startA = rot + ci * segAngle;
+    var endA = startA + segAngle * 0.7;
+    // Outer glow
+    ctx.strokeStyle = 'rgba(' + colStr + ',' + (0.12 * pulse) + ')';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(cx, cy, arcR, startA, endA); ctx.stroke();
+    // Mid glow
+    ctx.strokeStyle = 'rgba(' + colStr + ',' + (0.3 * pulse) + ')';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, arcR, startA, endA); ctx.stroke();
+    // Core
+    ctx.strokeStyle = 'rgba(' + colStr + ',' + (0.7 * pulse) + ')';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(cx, cy, arcR, startA, endA); ctx.stroke();
+  }
+  // Center: 3-color neon star — one arm per skater color
+  var starRot = -rot * 0.6;
+  var starR = 6;
+  for (var ci = 0; ci < 3; ci++) {
+    var col2 = SKATER_COLORS[ci];
+    var cs2 = col2.r + ',' + col2.g + ',' + col2.b;
+    var a = starRot + ci * Math.PI / 3;
+    var x1 = cx + Math.cos(a) * starR, y1 = cy + Math.sin(a) * starR;
+    var x2 = cx - Math.cos(a) * starR, y2 = cy - Math.sin(a) * starR;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(' + cs2 + ',' + (0.15 * pulse) + ')';
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(' + cs2 + ',' + (0.35 * pulse) + ')';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(' + cs2 + ',' + (0.8 * pulse) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 // ============================================
@@ -471,10 +608,7 @@ function hitTestEraser(x, y) {
 }
 
 function clearTrails() {
-  trailPgA.drawingContext.clearRect(0, 0, width, height);
-  trailPgB.drawingContext.clearRect(0, 0, width, height);
-  swapFrameCount = 0;
-  fadeFrameCount = 0;
+  trailPg.drawingContext.clearRect(0, 0, width, height);
   eraserFlash = 1;
 }
 
@@ -491,7 +625,7 @@ function scatterSkaters(tapX, tapY) {
     s.prevY = s.y;
     s.angle = random(TWO_PI);
     s.curvature = 0;
-    s.fadeIn = 0.3;
+    s.turning = 0; s.segDist = 0; s.segLen = 60 + random(80);
   }
   // Ripple at tap point
   var rc = SKATER_COLORS[floor(random(3))];
@@ -588,13 +722,8 @@ function touchEnded() { isHolding = false; holdTime = 0; if (touches.length === 
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
-  if (trailPgA) trailPgA.remove();
-  if (trailPgB) trailPgB.remove();
-  trailPgA = createGraphics(width, height);
-  trailPgA.pixelDensity(1);
-  trailPgB = createGraphics(width, height);
-  trailPgB.pixelDensity(1);
-  activeTrail = 0;
-  swapFrameCount = 0;
+  if (trailPg) trailPg.remove();
+  trailPg = createGraphics(width, height);
+  trailPg.pixelDensity(1);
   updateUIRects();
 }
