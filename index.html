@@ -294,7 +294,6 @@
       if (e.isIntersecting && !initDone[e.target.id]) {
         initDone[e.target.id] = true;
         drawPreview(e.target.id);
-        dismissLoading();
       }
     });
   }, { threshold: 0.05, rootMargin: '200px 0px' });
