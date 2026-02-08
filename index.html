@@ -227,6 +227,15 @@
         <span class="work-sub">Triangle Light</span>
       </div>
     </a>
+    <a href="./neon3/index.html" class="work">
+      <div class="work-preview">
+        <canvas id="cvNeon3"></canvas>
+      </div>
+      <div class="work-info">
+        <span class="work-title">Neon3</span>
+        <span class="work-sub">Shape Shifting</span>
+      </div>
+    </a>
   </div>
   <footer>
     tap a work to enter
@@ -256,7 +265,7 @@
       entries.forEach(function(e) { visMap[e.target.id] = e.isIntersecting; });
       dismissLoading();
     }, { threshold: 0.1 });
-    ['cvWaves','cvAurora','cvMeadow','cvClouds','cvSnow','cvNeon','cvNeon2'].forEach(function(id) {
+    ['cvWaves','cvAurora','cvMeadow','cvClouds','cvSnow','cvNeon','cvNeon2','cvNeon3'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) { observer.observe(el); visMap[id] = false; }
     });
@@ -743,6 +752,90 @@
       tN2 += 0.008;
     }
     drawNeon2();
+  })();
+
+  // --- Neon3 プレビュー（3スケーター + シェイプチェンジ）---
+  (function() {
+    var cn3 = document.getElementById('cvNeon3');
+    if (!cn3) return;
+    var ctxN3 = cn3.getContext('2d');
+    var N3W = cn3.width = 400, N3H = cn3.height = 225;
+    var tN3 = 0;
+    var TWO_THIRDS = 2.0943951;
+    var n3Colors = ['255,40,80', '20,100,255', '255,240,180'];
+    var n3Shapes = ['circle', 'triangle', 'square'];
+    var n3S = [];
+    for (var i = 0; i < 3; i++) {
+      n3S.push({ x: N3W * (0.2 + i * 0.3), y: N3H * 0.5, px: 0, py: 0,
+        angle: i * 2.1, curv: 0, spd: 0.9, seed: 42 + i * 95,
+        col: n3Colors[i], shape: n3Shapes[i], shapeT: i * 0.33 });
+    }
+    for (var i = 0; i < 3; i++) { n3S[i].px = n3S[i].x; n3S[i].py = n3S[i].y; }
+
+    function n3DrawShape(ctx, shape, cx, cy, r, ang) {
+      if (shape === 'circle') {
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      } else if (shape === 'triangle') {
+        ctx.beginPath();
+        ctx.moveTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang));
+        ctx.lineTo(cx + r * Math.cos(ang + TWO_THIRDS), cy + r * Math.sin(ang + TWO_THIRDS));
+        ctx.lineTo(cx + r * Math.cos(ang - TWO_THIRDS), cy + r * Math.sin(ang - TWO_THIRDS));
+        ctx.closePath();
+      } else {
+        var c = Math.cos(ang), s = Math.sin(ang), hr = r * 0.707;
+        ctx.beginPath();
+        ctx.moveTo(cx + hr * (c - s), cy + hr * (s + c));
+        ctx.lineTo(cx + hr * (-c - s), cy + hr * (-s + c));
+        ctx.lineTo(cx + hr * (-c + s), cy + hr * (-s - c));
+        ctx.lineTo(cx + hr * (c + s), cy + hr * (s - c));
+        ctx.closePath();
+      }
+    }
+
+    function drawNeon3() {
+      requestAnimationFrame(drawNeon3);
+      if (!visMap['cvNeon3']) return;
+      ctxN3.fillStyle = 'rgba(5,0,6,0.08)';
+      ctxN3.fillRect(0, 0, N3W, N3H);
+      var pulse3 = 0.75 + Math.sin(tN3 * 0.5) * 0.25;
+      ctxN3.globalCompositeOperation = 'lighter';
+
+      for (var si = 0; si < 3; si++) {
+        var s = n3S[si];
+        s.px = s.x; s.py = s.y;
+        var n1 = snoise(s.seed, tN3 * 0.06) - 0.5;
+        var n2 = snoise(s.seed + 100, tN3 * 0.2) - 0.5;
+        var tc = n1 * 0.06 + n2 * 0.025;
+        s.curv += (tc - s.curv) * 0.03;
+        s.angle += s.curv;
+        s.x += Math.cos(s.angle) * s.spd;
+        s.y += Math.sin(s.angle) * s.spd;
+        var ex = Math.abs(s.x - N3W / 2) / (N3W / 2);
+        var ey = Math.abs(s.y - N3H / 2) / (N3H / 2);
+        var edge = Math.max(ex, ey);
+        if (edge > 0.8) {
+          var da = Math.atan2(N3H / 2 - s.y, N3W / 2 - s.x) - s.angle;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          s.angle += da * (edge - 0.8) * 0.4;
+        }
+        // Cycle shapes slowly
+        s.shapeT += 0.0004;
+        if (s.shapeT > 1) { s.shapeT = 0; s.shape = n3Shapes[(n3Shapes.indexOf(s.shape) + 1) % 3]; }
+
+        var layers = [{ sz: 8, a: 0.03 }, { sz: 4, a: 0.08 }, { sz: 1.5, a: 0.18 }];
+        for (var li = 0; li < layers.length; li++) {
+          ctxN3.fillStyle = 'rgba(' + s.col + ',' + (layers[li].a * pulse3) + ')';
+          n3DrawShape(ctxN3, s.shape, s.x, s.y, layers[li].sz, s.angle);
+          ctxN3.fill();
+        }
+        ctxN3.fillStyle = 'rgba(' + s.col + ',' + (0.5 * pulse3) + ')';
+        ctxN3.beginPath(); ctxN3.arc(s.x, s.y, 1.5, 0, Math.PI * 2); ctxN3.fill();
+      }
+      ctxN3.globalCompositeOperation = 'source-over';
+      tN3 += 0.008;
+    }
+    drawNeon3();
   })();
   }, 10); // end setTimeout — defer canvas init to let loading screen paint
   </script>
